@@ -132,18 +132,18 @@ uint8_t errorAnnouce[30];
 uint8_t bit[30];
 //===========================FUNCTION===========================================
 // 											TABLE OF CONTENTS
-//	RECEIVE AND STORE DATA (line 143)   (7 BLOCK)
-//	STATUS DISPLAY(line 165)						(block 2,3)
-//	ERROR ANNOUNCE (line 193)						(block 2,3)
-//	STATUS SWITCHING (line 212) 				(block 2,3)
-//	DISPLAY INITIAL STATUS (line 243) 	(block 2,3)
-//	HANDLE PMM BLOCK(line 259)  				(block 4) 
-//	HANDLE OTHER BLOCK (line 303)				(block 5)
-//	CHECK SUM	(line 336)								(block 6)
-//	command CLEAR (line 361)
-// 	TRANSMITTED DATA (407)
-// DISPLAY 7 block (line 439)
-// CONTINUOUS DATA RECEIVE (line 470)
+//	RECEIVE AND STORE DATA (line 149)   (7 BLOCK)
+//	STATUS DISPLAY(line 170)						(block 2,3)
+//	ERROR ANNOUNCE (line 198)						(block 2,3)
+//	STATUS SWITCHING (line 217) 				(block 2,3)
+//	DISPLAY INITIAL STATUS (line 248) 	(block 2,3)
+//	HANDLE PMM BLOCK(line 264)  				(block 4) 
+//	HANDLE OTHER BLOCK (line 307)				(block 5)
+//	CHECK SUM	(line 340)								(block 6)
+//	command CLEAR (line 365)
+// 	TRANSMITTED DATA (381)
+// DISPLAY 7 block (line 445)
+// CONTINUOUS DATA RECEIVE (line 473)
 
 // FUNCTION FOR RECEIVE AND STORE DATA ====================================================================
 void received_data(uint8_t data)
