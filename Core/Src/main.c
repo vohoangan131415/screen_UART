@@ -24,7 +24,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "stdint.h"
-
+#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -45,6 +45,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* USER CODE END PV */
@@ -53,6 +54,7 @@ UART_HandleTypeDef huart1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -69,81 +71,65 @@ static void MX_USART1_UART_Init(void);
 #define CLOSED_LOOP 5
 #define IDLE 6
 #define UNKNOWN 7
-//setting define for P_M_M block 
-#define Position_BIT 0xF8 //5 high bit 1111 1000
-#define Map_BIT 0x04 // low bit thu 3   0000 0100
-#define Mode_BIT 0x03 // 2 low bit cuoi 0000 0011
 //setting define for Other block 
-#define Odrive_BIT 0x02 // bit 1 (HIGH) 0000 0010
-#define MapO_BIT 0x04 // bit 2 0000 0100
-#define NguonDongLuc_BIT 0x08 // bit 3 0000 1000
+#define Odrive_BIT 0x80 // bit 1 (HIGH) 0000 0010
+#define NguonDongLuc_BIT 0x40 // bit 2 0000 0100
 // setting a place for output (PMM,OTher)
-char buffer[100];
 //setting for clear and start command
 uint8_t send_clear[]={0x97, 0x00, 0x00,0x00,0x00, 0x00};
 uint8_t send_start[]={0x98, 0x00,0x00,0x00,0x00,0x00};
 ////uart received setting
-#define DATA_LEN 7
+#define DATA_LEN 6
+#define DATA_LEN2 8
 #define DATA_TRANS_LEN 3
 static uint8_t data_rx[DATA_LEN];
 static uint8_t uart_len = 0;
 static uint8_t uart_flag = 0;
 static uint8_t receive_flag = 0;
+
+static uint8_t data_rx2[DATA_LEN2];
+static uint8_t uart_len2 = 0;
+static uint8_t uart_flag2 = 0;
+static uint8_t receive_flag2 = 0;
 uint8_t data;
-// setting define choice (transmitted data) 
-#define TH0 8 // (value block = 0x00)
-#define TH1 9 // (value block = 0x01)
-#define TH2 10 // (value block = 0x02)
-#define TH3 11 // (value block = 0x03)
-uint8_t data_tx0[3] = {0x99, 0x00, 0x63}; // testcase 1
-uint8_t data_tx1[3] = {0x99, 0x01, 0x64};	// testcase 2
-uint8_t data_tx2[3] = {0x99, 0x02, 0x65};	// testcase 3
-uint8_t data_tx3[3] = {0x99, 0x03, 0x66};	// testcase 4
+uint8_t data2;
+#define nochoice 12 // (initial value)
+uint8_t data_tx0[3] = {0x99, 0x00, 0x99}; // testcase 1
+uint8_t data_tx1[3] = {0x99, 0x01, 0x9A};	// testcase 2
+uint8_t data_tx2[3] = {0x99, 0x02, 0x9B};	// testcase 3
+uint8_t data_tx3[3] = {0x99, 0x03, 0x9C};	// testcase 4
+
 
 //===========================VARIABLE===========================================
 
 // transmit data signal (transmitted data)
-uint8_t data_transmit_signal = 0;
-uint8_t data_transmited_need_change_signal = 0;
+#define Th0 8
+#define Th1 9
+#define Th2 10
+#define Th3 11
 // variable for choice(transmitted data)
 uint8_t th0_Sent = 0; //decide if TH1 and Th2 can be sent
-// variable for P_M_M signal variable (changing due to transmitted data)
-uint8_t Th0_signal = 0;
-uint8_t TH1_Signal = 0;
-uint8_t TH2_Signal = 0;
+uint8_t Data_enough_Sent = 0;
+uint8_t th3_sent = 0;
 // variable for error check 
 uint8_t error_signal = 0;
+
 //===========================DISPLAY===========================================
-// status display 
-uint8_t working[] = "WORKING\n";
-uint8_t successful[] = "SUCCESSFUL\n";
-uint8_t failed[] = "FAILED\n";
-uint8_t error[] = "ERROR\n";
-uint8_t closed_loop[] = "CLOSED_LOOP\n";
-uint8_t idle[] = "IDLE\n";
-uint8_t unknown_status[] = "UNKNOWN_STATUS";
-uint8_t NA_status[]= "N/A\n";
-//  checksum display
-uint8_t chuadudulieu[]= "chua_du_du_lieu";
-uint8_t dadudulieu[]= "da_du_du_lieu";
 // error display
-uint8_t errorAnnouce[30];
-// Bit display (position)
-uint8_t bit[30];
+uint8_t errorAnnouce[20];
+
 //===========================FUNCTION===========================================
 // 											TABLE OF CONTENTS
-//	RECEIVE AND STORE DATA (line 149)   (7 BLOCK)
-//	STATUS DISPLAY(line 170)						(block 2,3)
-//	ERROR ANNOUNCE (line 198)						(block 2,3)
-//	STATUS SWITCHING (line 217) 				(block 2,3)
-//	DISPLAY INITIAL STATUS (line 248) 	(block 2,3)
-//	HANDLE PMM BLOCK(line 264)  				(block 4) 
-//	HANDLE OTHER BLOCK (line 307)				(block 5)
-//	CHECK SUM	(line 340)								(block 6)
+//	RECEIVE AND STORE DATA for huart1 (line 136)   
+//  RECEIVE AND STORE DATA for huart2 (line 158)
+//	STATUS DISPLAY(line 180-270)						
+//	STATUS SWITCHING (line 272-302) 				
+//	DISPLAY INITIAL STATUS (line 305) 	
+//	HANDLE OTHER BLOCK (line 341)				
+//	CHECK SUM	(line 370)								
 //	command CLEAR (line 365)
-// 	TRANSMITTED DATA (381)
-// DISPLAY 7 block (line 445)
-// CONTINUOUS DATA RECEIVE (line 473)
+// 	TRANSMITTED DATA (443-514)
+
 
 // FUNCTION FOR RECEIVE AND STORE DATA ====================================================================
 void received_data(uint8_t data)
@@ -154,7 +140,7 @@ void received_data(uint8_t data)
 	}
 	if(receive_flag)
 	{
-		if(uart_len == 7)
+		if(uart_len == 6)
 		{
 			data_rx[uart_len] = data;
 			uart_flag = 1;
@@ -167,307 +153,361 @@ void received_data(uint8_t data)
 	receive_flag = 0;
 		uart_flag = 0;
 }
+void received_data2(uint8_t data2)
+{
+	if(data2 == 0x5A && uart_len2 == 0)
+	{
+		receive_flag2= 1;
+	}
+	if(receive_flag2)
+	{
+		if(uart_len2 == 7)
+		{
+			data_rx2[uart_len2] = data2;
+			uart_flag2 = 1;
+		}
+		else
+		{
+			data_rx2[uart_len2++] = data2;
+		}
+	}
+		receive_flag2 = 0;
+		uart_flag2 = 0;
+}
  //FUNCTION FOR STATUS DISPLAY ====================================================================
+typedef struct
+{
+	
+	uint8_t working[12];
+	uint8_t successful[15];
+	uint8_t failed[11];
+	uint8_t error[10];
+	uint8_t closed_loop[16];
+	uint8_t idle[9];
+	uint8_t unknown_status[12];
+	uint8_t notEnough[14];
+	uint8_t Enough[11];
+	uint8_t NAstatus[7];
+}displayContentstatus;
+displayContentstatus status_dis_store;
+int address;
+void addressConfirm(uint8_t index)
+{
+		
+		switch(index)
+		{
+			case 1:
+				address = 0x60; // SenSor state
+				break;
+			case 2:
+				address = 0x61;  // Odrive state (error/working)
+				break;
+			case 3:
+				address = 0x62;  // device state
+				break;
+			case 4:
+				address = 0x63;   //other (Odrive state idle/close loop)
+				break;
+			case 5:
+				address = 0x64;   //other (NguonDongLuc)
+				break;
+			case 6: 
+				address = 0x65;   // checksum
+				break;
+		}
+	
+}
+displayContentstatus create_displaystatus()
+{
+	
+	displayContentstatus status = {
+												{0x5A, 0xA5, 0x12, 0x82, address, 0x57, 0x4F, 0x52, 0x4B, 0x49, 0x4E, 0x47}, //WORKING
+												{0x5A, 0xA5, 0x15, 0x82, address,0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x46, 0x55, 0x4C}, // successful
+												{0x5A, 0xA5, 0x11, 0x82, address,0x46, 0x41, 0x49, 0x4C, 0x45, 0x44}, // FAILED
+												{0x5A, 0xA5, 0x10, 0x82, address, 0x45, 0x52, 0x52, 0x4F, 0x52},// ERROR
+												{0x5A, 0xA5, 0x16, 0x82, address,0x43, 0x4C, 0x4F, 0x53, 0x45, 0x44, 0x5F, 0x4C, 0x4F, 0x4F, 0x50}, // Closed_loop
+												{0x5A, 0xA5, 0x9, 0x82, address ,0x49, 0x44, 0x4C, 0x45},// IDLE
+												{0x5A, 0xA5, 0x12, 0x82, address,0x55, 0x4E, 0x4B, 0x4E, 0x4F, 0x57, 0x4E},// UNKNOWN
+												{0x5A, 0xA5, 0x14, 0x82, 0x66,0x6E, 0x6F, 0x74, 0x45, 0x6E, 0x6F, 0x75, 0x67, 0x68},// chua du du lieu ( address #)
+												{0x5A, 0xA5, 0x11, 0x82, 0x66,0x45, 0x6E, 0x6F, 0x75, 0x67, 0x68},//  du du lieu ( address #)
+												{0x5A, 0xA5, 0x7, 0x82, address,0x4E,0x41}    //  NA 
+											};
+				return status;
+}
+
+
+
 void status_display(uint8_t status1)
 {
+	status_dis_store = create_displaystatus();
 	switch(status1){
         
         case SUCCESSFUL:
-            HAL_UART_Transmit(&huart1, successful, sizeof(successful), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.successful, sizeof(status_dis_store.successful), HAL_MAX_DELAY);
             break;
         case FAILED:
-            HAL_UART_Transmit(&huart1, failed, sizeof(failed), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.failed, sizeof(status_dis_store.failed), HAL_MAX_DELAY);
             break;
         case WORKING:
-            HAL_UART_Transmit(&huart1, working, sizeof(working), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.working, sizeof(status_dis_store.working), HAL_MAX_DELAY);
             break;
         case ERROR:
-            HAL_UART_Transmit(&huart1, error, sizeof(error), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.error, sizeof(status_dis_store.error), HAL_MAX_DELAY);
             break;
         case CLOSED_LOOP:
-            HAL_UART_Transmit(&huart1, closed_loop, sizeof(closed_loop), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.closed_loop, sizeof(status_dis_store.closed_loop), HAL_MAX_DELAY);
             break;
         case IDLE:
-            HAL_UART_Transmit(&huart1, idle, sizeof(idle), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.idle, sizeof(status_dis_store.idle), HAL_MAX_DELAY);
             break;
         case UNKNOWN:
-            HAL_UART_Transmit(&huart1, unknown_status, sizeof(unknown_status), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart1, status_dis_store.unknown_status, sizeof(status_dis_store.unknown_status), HAL_MAX_DELAY);
             break;
-}
-}
-// FUNCTION FOR ERROR ANNOUNCEMENT====================================================================
-void check_errors(uint8_t *status, uint8_t size, int *index) {
-    for (int i = 0; i < size; i++) {
-        if (*status == 0x00) 
-					{
-						sprintf(errorAnnouce, "object %d: Error ", *index);
-						HAL_UART_Transmit(&huart1, errorAnnouce, sizeof(errorAnnouce), HAL_MAX_DELAY);
-					}
-				// temporary fixing for transmitted data
-//				else if(*status == 0x00 && Th0_signal)
-//				{
-//					sprintf(errorAnnouce, "object %d: N/A ", *index);
-//          HAL_UART_Transmit(&huart1, errorAnnouce, sizeof(errorAnnouce), HAL_MAX_DELAY);
-//				}
-//    }
-//		Th0_signal=0;
-			error_signal =0;
-			}
-		}
+	}	
+	}
+
+
 // FUCNTION FOR STATUS SWITCHING=================================================
+uint8_t statuschangeSignal = 0;
+uint8_t newlocationlist = 0;
+void handle_new_data(uint8_t *new_data)
+{
+	 for(int j = 1; j < 6; j++)
+    {
+				addressConfirm(j);
+        if(new_data[j] == 0x00)
+        {
+						status_display(ERROR);
+				}
+				
+            // Ng?ng ki?m tra ngay khi phát hi?n l?i
+        
+    }
+}
 void status_changing(uint8_t *data_value)
 {
-	for(int i = 1; i < 7; i++)
+	
+	for(int i = 1; i < 6; i++)
 		{
-			if(i == 2)
-				{
-					if(*(data_value+i) == 0x01)
-					{
-					status_display(IDLE);
-					}
-					else
-					{
-					status_display(CLOSED_LOOP);
-					}
-				}
-			else
-			{
+				addressConfirm(i);
 				if(*(data_value+i) == 0x01)
 				{
+					
 					status_display(WORKING);
 				}
-				else if(*(data_value+i) == 0x00)
-				{
-					status_display(ERROR);
-					error_signal = 1;					
-				}
-			} 
-			check_errors(data_rx + i, 1, &i);
+				   
 		}
-	}
+}
+
 // FUNCTION FOR DISPLAY INITIAL STATUS ============================================
+
 void Starting(uint8_t *data)
 {
-		for(int i = 1; i < 7; i++)
+		uint8_t all_successful = 1;
+		
+		for(int i = 1; i < 6; i++)
 		{
-			
+			addressConfirm(i);
 			if(data[i] == 0x01)
 			{
 				status_display(SUCCESSFUL);
 			}
 			else if(data[i] == 0x00)
 			{
+				all_successful = 0;
 				status_display(FAILED);
+				error_signal = 1;
 			}			
+			 
 		}
+		if(all_successful)
+			{
+				statuschangeSignal = 1;
+				status_changing(data);
+			}
+		if(statuschangeSignal)
+			{
+				handle_new_data(data);
+			}
+		
 }
-// FUNCTION FOR HANDLE PMM BLOCK ==================================================
-// FUNCTION FOR specific BIT (PMM, OTHER) (thu tu cua bit)
+//// FUNCTION FOR specific BIT (PMM, OTHER) (thu tu cua bit)
 uint8_t check_bit(uint8_t value, uint8_t bit_position) {
     return (value >> bit_position) & 0x01;
 }
-// FUNCTION FOR Position BIT (position in PMM) 
-uint8_t check_bit_position(uint8_t value, uint8_t bit_position) {
-    return (value >> bit_position) & 0x1F;
-}
-void PMM(uint8_t *data_value4){ // 4 represents for the position of the bit
-	uint8_t Position = check_bit_position((*(data_value4 + 4) & Position_BIT), 3);
-	sprintf(bit, "Bit = %d", Position);
-	HAL_UART_Transmit(&huart1, bit , sizeof(bit), HAL_MAX_DELAY);
-	sprintf(buffer, "Position = %d\n", Position);
-	uint8_t Map = check_bit((*(data_value4 + 4) & Map_BIT), 2);
-	if(Map == 0x01)
-		{
-			strcat(buffer, "Map = San 1\n");
-		}
-	if(Map == 0x00)
-		{
-			strcat(buffer, "Map = San 2\n");
-		}
-	uint8_t Mode = check_bit((*(data_value4 + 4) & Mode_BIT), 0);
-	if(Mode == 0x00)
-	{
-		strcat(buffer, "Mode: Auto \n");
-	}
-	else if(Mode == 0x01)
-	{
-		strcat(buffer, "Mode: Manual \n");
-	}
-	else if(Mode == 0x03)
-	{
-		strcat(buffer, "Mode: No Mode \n");
-	}
-// temporary fixing for transmitted data
-//	else if(TH1_Signal &&( Mode == 0x00 || Mode == 0x01|| Mode == 0x03))
-//	{
-//		strcat(buffer, "Mode: Manual \n");
-//	}
-	HAL_UART_Transmit(&huart1, buffer, strlen(buffer), HAL_MAX_DELAY);
-}
-// FUNCTION FOR HANDLE OTHER BLOCK==================================================
+//// FUNCTION FOR HANDLE OTHER BLOCK==================================================
+
 void Other(uint8_t *data_value5) // 5 represents for the position of the bit
 {
-	uint8_t Odrive_State = check_bit((*(data_value5 + 5) & Odrive_BIT), 1);
-	if(Odrive_State == 0x0)
+	for(int i = 0; i < 6; i++)
 	{
-		strcat(buffer, "Odrive_State: IDLE \n");
-	}
-	else
+		addressConfirm(i);
+	if(i == 2)
 	{
-		strcat(buffer, "Odrive_State: CLOSED_LOOP \n");
+			uint8_t Odrive_State = check_bit((*(data_value5 + 4) & Odrive_BIT), 7);
+			if(Odrive_State == 0x00)
+			{
+				
+				status_display(IDLE);
+			}
+			else if(Odrive_State == 0x01)
+			{
+				status_display(CLOSED_LOOP);
+			}
 	}
-	uint8_t MapO = check_bit((*(data_value5 + 5) & MapO_BIT), 2);
-	if(MapO == 0x0)
-	{
-		strcat(buffer, "MapO: Right \n");
 	}
-	else
-	{
-		strcat(buffer, "MapO: Left \n");
-	}
-	uint8_t NguonDongLuc = check_bit((*(data_value5 + 5) & NguonDongLuc_BIT), 3);
-	if(NguonDongLuc == 0x0)
-		{
-			strcat(buffer, "NguonDongLuc = Error");
-		}
-	else
-		{
-			strcat(buffer, "NguonDongLuc = Working");
-		}
-		HAL_UART_Transmit(&huart1, buffer, strlen(buffer), HAL_MAX_DELAY);
-		
+	uint8_t NguonDongLuc = check_bit((*(data_value5 + 4) & NguonDongLuc_BIT), 6);
+			if(NguonDongLuc == 0x00)
+			{
+				status_display(ERROR);
+			}
+			else if(NguonDongLuc == 0x01)
+			{
+				status_display(WORKING);
+			}
 }
 // FUNCTION FOR CHECK SUM ==================================================
 uint8_t calculate_checksum(uint8_t *data, size_t length) // calculate checksum
 { 
     uint8_t checksum = 0;
-    for (size_t i = 0; i < length; i++) {
+    for (size_t i = 0; i < length - 1; i++) {
         checksum += data[i];
     }
     return checksum;
-		
 }
-void check_sum(uint8_t *data, uint8_t length) // compare checksum
-{
+uint8_t calculate_checksum2(uint8_t *data, size_t length) // calculate checksum
+{ 
+    uint8_t checksum = 0;
+    for (size_t i = 5; i < length - 1; i++) {
+        checksum += data[i];
+    }
+    return checksum;
+}
 
-		uint8_t received_checksum = data[length - 1];
-		uint8_t calculated_checksum = calculate_checksum(data, length - 1 );
-		if(calculated_checksum == received_checksum)
+void check_sum(uint8_t *data, uint8_t length) // compare checksum (received)
+{
+		status_dis_store = create_displaystatus();
+		uint8_t received_transmitted_checksum = data[length - 1];
+		uint8_t calculated_checksum = calculate_checksum(data, length);
+		if(calculated_checksum == received_transmitted_checksum)
 		{
-				HAL_UART_Transmit(&huart1,dadudulieu, sizeof(dadudulieu), HAL_MAX_DELAY );
+				Data_enough_Sent = 1;
+				HAL_UART_Transmit(&huart1, status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY);
+				
 		}
 		else
 		{
-			HAL_UART_Transmit(&huart1,chuadudulieu, sizeof(chuadudulieu), HAL_MAX_DELAY );
+			HAL_UART_Transmit(&huart1,status_dis_store.notEnough, sizeof(status_dis_store.notEnough), HAL_MAX_DELAY );
+		}
+}
+void check_sum2(uint8_t *data, uint8_t length) // compare checksum (transmit)
+{
+		status_dis_store = create_displaystatus();
+		uint8_t received_transmitted_checksum = data[length - 1];
+		uint8_t calculated_checksum = calculate_checksum2(data, length);
+		if(calculated_checksum == received_transmitted_checksum)
+		{
+				Data_enough_Sent = 1;
+				HAL_UART_Transmit(&huart2, status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY);
+				
+		}
+		else if(calculated_checksum == received_transmitted_checksum && th3_sent)
+		{
+			Data_enough_Sent = 1;
+			th3_sent = 0;
+			HAL_UART_Transmit(&huart2,status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY );
+		}
+		else
+		{
+			HAL_UART_Transmit(&huart2,status_dis_store.notEnough, sizeof(status_dis_store.notEnough), HAL_MAX_DELAY );
 		}
 }
 
-//Function for command CLEAR==================================================
+////Function for command CLEAR==================================================
 void Reset_data()
-{
-	HAL_UART_Transmit(&huart1, send_clear, sizeof(send_clear), HAL_MAX_DELAY);
-	 for (int i = 0; i < DATA_LEN; i++) 
+{	
+			HAL_UART_Transmit(&huart1, send_clear, sizeof(send_clear), HAL_MAX_DELAY);
+			for(int i = 0; i < DATA_LEN; i++) 
 			{
 					data_rx[i] = 0x00; // reset all values
-				HAL_UART_Transmit(&huart1, NA_status, sizeof(NA_status), HAL_MAX_DELAY);
+				HAL_UART_Transmit(&huart1, status_dis_store.NAstatus, sizeof(status_dis_store.NAstatus), HAL_MAX_DELAY);
 			}
 			uart_len = 0;
 			uart_flag = 0;
 			receive_flag = 0;
 			error_signal = 0;
-}
+		}
 
-//========================================================================================
-//																			TRANSMITTED DATA
+////========================================================================================
+////																			TRANSMITTED DATA
 // CHOICE FOR 0x00, 0x01, 0x02, 0x03
-void choice_selection_data_tx(uint8_t choice)
+void choice_selection_data_tx(uint8_t choice, uint8_t *data2)
 {
 	switch(choice)
 	{
-		case TH0: 
-				th0_Sent = 1;
-				HAL_UART_Transmit(&huart1, data_tx1, sizeof(data_tx1), HAL_MAX_DELAY);
-				Th0_signal = 1;
+		case Th0: 
+				check_sum2(data_rx2,DATA_LEN2);
+				if(Data_enough_Sent)
+					{
+							HAL_UART_Transmit(&huart2, data_tx0, sizeof(data_tx0), HAL_MAX_DELAY);
+							Data_enough_Sent = 0;
+					}
+					th0_Sent = 1;
 			break;
-		case TH1: 
-			if(th0_Sent)
-			{
-				HAL_UART_Transmit(&huart1, data_tx1, sizeof(data_tx1), HAL_MAX_DELAY);
-				TH1_Signal = 1;
-			}
+		case Th1: 
+					check_sum2(data_rx2,DATA_LEN2);
+					if(Data_enough_Sent && th0_Sent)
+					{
+							HAL_UART_Transmit(&huart2, data_tx1, sizeof(data_tx1), HAL_MAX_DELAY);
+					}
 			break;
-		case TH2: 
-			if(th0_Sent)
-			{
-				HAL_UART_Transmit(&huart1, data_tx2, sizeof(data_tx2), HAL_MAX_DELAY);
-				TH2_Signal = 1;
-			}
+		case Th2: 
+					check_sum2(data_rx2,DATA_LEN2);
+					if(Data_enough_Sent && th0_Sent)
+					{
+							HAL_UART_Transmit(&huart2, data_tx2, sizeof(data_tx2), HAL_MAX_DELAY);
+							Data_enough_Sent = 0;
+					}
 			break;
-//		case TH3: 
-//			break;
-		
+			case Th3: 
+					check_sum2(data_rx2,DATA_LEN2);
+					if(Data_enough_Sent)
+					{
+							HAL_UART_Transmit(&huart2, data_tx3, sizeof(data_tx3), HAL_MAX_DELAY);
+							Data_enough_Sent = 0;
+					}
+			break;
+			
 	}
-}
-//FUNCTION FOR value block (0x01 and 0x02)
-void closedLoop_clearError(uint8_t *data_send, uint8_t *data_rec)
-{
-	
-		for(int j = 0; j < 3; j++)
-			if(j == 1 && Th0_signal)
-			{
-				Starting(data_rec);
-				status_changing(data_rec);
-				if(data_send[j] == 0x01)
-					{
-						TH1_Signal = 1;
-					}
-					if(data_send[j] == 0x02)
-					{
-						TH2_Signal = 1;
-						Reset_data();
-					}
-			}
-	
-}
-//FUNCTION FOR value block (0x03) 
-void homing_swereve()
-{};
-//FUNCTION FOR value block (0x00)
-void transmitted_data_handle(uint8_t *data_sending, uint8_t *data_rec, uint8_t length1)
-{
-	
-				check_sum(data_rec, length1);
-				data_transmit_signal = 1;
-				closedLoop_clearError(data_sending, data_rec);
-	
 }
 //===================================================================================================================
 // FUNCTION FOR DISPLAY 7 block, value of PMM, OTHER, status, check sum ==================================================
-void package_display(uint8_t *data_rec, uint8_t length)
+void package_display(uint8_t *data_7Block, uint8_t length)
 {
-		Starting(data_rec);
-		status_changing(data_rec);
-		PMM(data_rec);
-		Other(data_rec);
-		check_sum(data_rec, DATA_LEN);
-//		temporary fix for the transmitted data
-//		if(Th0_signal == 1)
-//		{
-//		transmitted_data_handle(data_tx0, data_rec, DATA_TRANS_LEN);
-//		}
-//		
-//		if(TH1_Signal == 1)
-//		{
-//		transmitted_data_handle(data_tx1, data_rec, DATA_TRANS_LEN);
-//		}
-//		TH1_Signal=0;
-//		if(TH2_Signal == 1)
-//		{
-//		transmitted_data_handle(data_tx2, data_rec, DATA_TRANS_LEN);
-//		}
-//		TH2_Signal = 0;
+			
+			//Starting(data_7Block);
+			//Other(data_7Block);
+			check_sum(data_7Block, DATA_LEN);
+	
 }
-
+void package_sending(uint8_t *data2)
+{
+	for(int i = 0; i < 8; i++)
+	{
+		if(i == 6)
+		{
+			if(data2[i] == 0x0){
+			choice_selection_data_tx(Th0,data2);
+			}
+			else if(data2[i] == 0x01 && th0_Sent){
+			choice_selection_data_tx(Th1,data2);}
+			else if(data2[i] == 0x02 && th0_Sent){
+			choice_selection_data_tx(Th2,data2);}
+			else if(data2[i] == 0x03 ){
+			choice_selection_data_tx(Th3,data2);}
+		}
+	}
+}
 
 
 // FUNCTION FOR CONTINUOUS DATA==================================================
@@ -479,6 +519,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 		received_data(data);
 		package_display(data_rx, DATA_LEN);
+	}
+	 if(huart->Instance == huart2.Instance)
+	{
+		uart_flag2 = 1;
+		HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
+		received_data2(data2);
+		package_sending(data_rx2);
 	}
 }
 
@@ -515,10 +562,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-	 HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
-	Reset_data();
-//choice_selection_data_tx(TH0);
+HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
+HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
+//choice_selection_data_tx(nochoice);
+//choice_selection_data_tx(Th0);
+//choice_selection_data_tx(Th1);
+	//choice_selection_data_tx(Th2);
+//	choice_selection_data_tx(Th3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -604,6 +656,39 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
