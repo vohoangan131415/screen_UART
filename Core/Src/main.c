@@ -82,17 +82,19 @@ uint8_t send_start[]={0x98, 0x00,0x00,0x00,0x00,0x00};
 #define DATA_LEN 6
 #define DATA_LEN2 8
 #define DATA_TRANS_LEN 3
-static uint8_t data_rx[DATA_LEN];
-static uint8_t uart_len = 0;
-static uint8_t uart_flag = 0;
-static uint8_t receive_flag = 0;
+uint8_t data_rx[6];
+uint8_t uart_len = 0;
+uint8_t uart_flag = 0;
+uint8_t receive_flag = 0;
 
 static uint8_t data_rx2[DATA_LEN2];
 static uint8_t uart_len2 = 0;
 static uint8_t uart_flag2 = 0;
 static uint8_t receive_flag2 = 0;
-uint8_t data;
+uint8_t data ;
 uint8_t data2;
+uint8_t send_data[8] = {0x5a, 0xa5, 0x05, 0x82, 0x61, 0x00, 0x00, 0x01} ; 
+uint8_t send[8] = {0x5a, 0xa5, 0x05, 0x82, 0x62, 0x00, 0x00, 0x02} ; 
 #define nochoice 12 // (initial value)
 uint8_t data_tx0[3] = {0x99, 0x00, 0x99}; // testcase 1
 uint8_t data_tx1[3] = {0x99, 0x01, 0x9A};	// testcase 2
@@ -135,12 +137,14 @@ uint8_t errorAnnouce[20];
 void received_data(uint8_t data)
 {
 	if(data == 0x98 && uart_len == 0)
+	
 	{
 		receive_flag = 1;
 	}
+	
 	if(receive_flag)
 	{
-		if(uart_len == 6)
+		if(uart_len == 65)
 		{
 			data_rx[uart_len] = data;
 			uart_flag = 1;
@@ -148,11 +152,14 @@ void received_data(uint8_t data)
 		else
 		{
 			data_rx[uart_len++] = data;
+			uart_len++;
 		}
 	}
+	
 	receive_flag = 0;
-		uart_flag = 0;
+	uart_flag = 0;
 }
+
 void received_data2(uint8_t data2)
 {
 	if(data2 == 0x5A && uart_len2 == 0)
@@ -179,7 +186,7 @@ typedef struct
 {
 	
 	uint8_t working[12];
-	uint8_t successful[15];
+	uint8_t successful[8];
 	uint8_t failed[11];
 	uint8_t error[10];
 	uint8_t closed_loop[16];
@@ -221,10 +228,11 @@ displayContentstatus create_displaystatus()
 {
 	
 	displayContentstatus status = {
-												{0x5A, 0xA5, 0x12, 0x82, address, 0x57, 0x4F, 0x52, 0x4B, 0x49, 0x4E, 0x47}, //WORKING
-												{0x5A, 0xA5, 0x15, 0x82, address,0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x46, 0x55, 0x4C}, // successful
-												{0x5A, 0xA5, 0x11, 0x82, address,0x46, 0x41, 0x49, 0x4C, 0x45, 0x44}, // FAILED
-												{0x5A, 0xA5, 0x10, 0x82, address, 0x45, 0x52, 0x52, 0x4F, 0x52},// ERROR
+												{0x5A, 0xA5, 0x12, 0x82, 0x63, 0x57, 0x4F, 0x52, 0x4B, 0x49, 0x4E, 0x47}, //WORKING, HUM
+											//	{0x5A, 0xA5, 0x15, 0x82, 0x64,0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x46, 0x55, 0x4C}, // successful,tem 
+													{0x5a, 0xa5, 0x05, 0x82, 0x61, 0x00, 0x00, 0x01},
+												{0x5A, 0xA5, 0x11, 0x82, 0x65,0x46, 0x41, 0x49, 0x4C, 0x45, 0x44}, // FAILED, Pres
+												{0x5A, 0xA5, 0x10, 0x82, 0x66, 0x45, 0x52, 0x52, 0x4F, 0x52},// ERROR, Dew
 												{0x5A, 0xA5, 0x16, 0x82, address,0x43, 0x4C, 0x4F, 0x53, 0x45, 0x44, 0x5F, 0x4C, 0x4F, 0x4F, 0x50}, // Closed_loop
 												{0x5A, 0xA5, 0x9, 0x82, address ,0x49, 0x44, 0x4C, 0x45},// IDLE
 												{0x5A, 0xA5, 0x12, 0x82, address,0x55, 0x4E, 0x4B, 0x4E, 0x4F, 0x57, 0x4E},// UNKNOWN
@@ -243,25 +251,27 @@ void status_display(uint8_t status1)
 	switch(status1){
         
         case SUCCESSFUL:
-            HAL_UART_Transmit(&huart1, status_dis_store.successful, sizeof(status_dis_store.successful), HAL_MAX_DELAY);
+            //HAL_UART_Transmit(&huart2, status_dis_store.successful, sizeof(status_dis_store.successful), HAL_MAX_DELAY);
+						HAL_UART_Transmit(&huart2, send_data, 8, HAL_MAX_DELAY);
             break;
         case FAILED:
-            HAL_UART_Transmit(&huart1, status_dis_store.failed, sizeof(status_dis_store.failed), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.failed, sizeof(status_dis_store.failed), HAL_MAX_DELAY);
             break;
         case WORKING:
-            HAL_UART_Transmit(&huart1, status_dis_store.working, sizeof(status_dis_store.working), HAL_MAX_DELAY);
-            break;
+            //HAL_UART_Transmit(&huart2, status_dis_store.working, sizeof(status_dis_store.working), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, send, 8, HAL_MAX_DELAY);
+						break;
         case ERROR:
-            HAL_UART_Transmit(&huart1, status_dis_store.error, sizeof(status_dis_store.error), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.error, sizeof(status_dis_store.error), HAL_MAX_DELAY);
             break;
         case CLOSED_LOOP:
-            HAL_UART_Transmit(&huart1, status_dis_store.closed_loop, sizeof(status_dis_store.closed_loop), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.closed_loop, sizeof(status_dis_store.closed_loop), HAL_MAX_DELAY);
             break;
         case IDLE:
-            HAL_UART_Transmit(&huart1, status_dis_store.idle, sizeof(status_dis_store.idle), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.idle, sizeof(status_dis_store.idle), HAL_MAX_DELAY);
             break;
         case UNKNOWN:
-            HAL_UART_Transmit(&huart1, status_dis_store.unknown_status, sizeof(status_dis_store.unknown_status), HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.unknown_status, sizeof(status_dis_store.unknown_status), HAL_MAX_DELAY);
             break;
 	}	
 	}
@@ -292,7 +302,6 @@ void status_changing(uint8_t *data_value)
 				addressConfirm(i);
 				if(*(data_value+i) == 0x01)
 				{
-					
 					status_display(WORKING);
 				}
 				   
@@ -485,9 +494,9 @@ void choice_selection_data_tx(uint8_t choice, uint8_t *data2)
 void package_display(uint8_t *data_7Block, uint8_t length)
 {
 			
-			//Starting(data_7Block);
+			Starting(data_7Block);
 			//Other(data_7Block);
-			check_sum(data_7Block, DATA_LEN);
+			//check_sum(data_7Block, DATA_LEN);
 	
 }
 void package_sending(uint8_t *data2)
@@ -520,13 +529,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		received_data(data);
 		package_display(data_rx, DATA_LEN);
 	}
-	 if(huart->Instance == huart2.Instance)
+/*	 if(huart->Instance == huart2.Instance)
 	{
 		uart_flag2 = 1;
 		HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
 		received_data2(data2);
 		package_sending(data_rx2);
-	}
+	} */
 }
 
 
@@ -566,11 +575,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
-//choice_selection_data_tx(nochoice);
-//choice_selection_data_tx(Th0);
-//choice_selection_data_tx(Th1);
-	//choice_selection_data_tx(Th2);
-//	choice_selection_data_tx(Th3);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -579,7 +584,7 @@ HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
   while (1)
   {
     /* USER CODE END WHILE */
-
+	//HAL_UART_Transmit(&huart2, send_data, 8, HAL_MAX_DELAY);
     /* USER CODE BEGIN 3 */
 //		Starting_phase();
 		
@@ -642,7 +647,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -675,7 +680,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
