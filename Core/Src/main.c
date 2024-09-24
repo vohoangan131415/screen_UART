@@ -93,8 +93,9 @@ static uint8_t uart_flag2 = 0;
 static uint8_t receive_flag2 = 0;
 uint8_t data ;
 uint8_t data2;
-uint8_t send_data[8] = {0x5a, 0xa5, 0x05, 0x82, 0x61, 0x00, 0x00, 0x01} ; 
-uint8_t send[8] = {0x5a, 0xa5, 0x05, 0x82, 0x62, 0x00, 0x00, 0x02} ; 
+uint8_t time;
+uint8_t wk[] = {0x5a, 0xa5, 0x0d, 0x82, 0x00, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67} ; 
+uint8_t ss[] = {0x5a, 0xa5, 0x05, 0x82, 0x62, 0x00, 0x00, 0x02} ; 
 #define nochoice 12 // (initial value)
 uint8_t data_tx0[3] = {0x99, 0x00, 0x99}; // testcase 1
 uint8_t data_tx1[3] = {0x99, 0x01, 0x9A};	// testcase 2
@@ -115,7 +116,7 @@ uint8_t Data_enough_Sent = 0;
 uint8_t th3_sent = 0;
 // variable for error check 
 uint8_t error_signal = 0;
-
+uint8_t error_appear = 0; 
 //===========================DISPLAY===========================================
 // error display
 uint8_t errorAnnouce[20];
@@ -144,7 +145,7 @@ void received_data(uint8_t data)
 	
 	if(receive_flag)
 	{
-		if(uart_len == 65)
+		if(uart_len == 6)
 		{
 			data_rx[uart_len] = data;
 			uart_flag = 1;
@@ -185,16 +186,16 @@ void received_data2(uint8_t data2)
 typedef struct
 {
 	
-	uint8_t working[12];
-	uint8_t successful[8];
-	uint8_t failed[11];
-	uint8_t error[10];
+	uint8_t working[16];
+	uint8_t successful[16];
+	uint8_t failed[16];
+	uint8_t error[16];
 	uint8_t closed_loop[16];
-	uint8_t idle[9];
-	uint8_t unknown_status[12];
-	uint8_t notEnough[14];
-	uint8_t Enough[11];
-	uint8_t NAstatus[7];
+	uint8_t idle[16];
+	uint8_t unknown_status[16];
+	uint8_t notEnough[16];
+	uint8_t Enough[16];
+	uint8_t NAstatus[16];
 }displayContentstatus;
 displayContentstatus status_dis_store;
 int address;
@@ -204,22 +205,22 @@ void addressConfirm(uint8_t index)
 		switch(index)
 		{
 			case 1:
-				address = 0x60; // SenSor state
+				address = 0x21; // SenSor state
 				break;
 			case 2:
-				address = 0x61;  // Odrive state (error/working)
+				address = 0x22;  // Odrive state (error/working)
 				break;
 			case 3:
-				address = 0x62;  // device state
+				address = 0x23;  // device state
 				break;
 			case 4:
-				address = 0x63;   //other (Odrive state idle/close loop)
+				address = 0x24;   //other (Odrive state idle/close loop)
 				break;
 			case 5:
-				address = 0x64;   //other (NguonDongLuc)
+				address = 0x25;   //other (NguonDongLuc)
 				break;
 			case 6: 
-				address = 0x65;   // checksum
+				address = 0x26;   // checksum
 				break;
 		}
 	
@@ -228,17 +229,16 @@ displayContentstatus create_displaystatus()
 {
 	
 	displayContentstatus status = {
-												{0x5A, 0xA5, 0x12, 0x82, 0x63, 0x57, 0x4F, 0x52, 0x4B, 0x49, 0x4E, 0x47}, //WORKING, HUM
-											//	{0x5A, 0xA5, 0x15, 0x82, 0x64,0x53, 0x55, 0x43, 0x43, 0x45, 0x53, 0x53, 0x46, 0x55, 0x4C}, // successful,tem 
-													{0x5a, 0xa5, 0x05, 0x82, 0x61, 0x00, 0x00, 0x01},
-												{0x5A, 0xA5, 0x11, 0x82, 0x65,0x46, 0x41, 0x49, 0x4C, 0x45, 0x44}, // FAILED, Pres
-												{0x5A, 0xA5, 0x10, 0x82, 0x66, 0x45, 0x52, 0x52, 0x4F, 0x52},// ERROR, Dew
-												{0x5A, 0xA5, 0x16, 0x82, address,0x43, 0x4C, 0x4F, 0x53, 0x45, 0x44, 0x5F, 0x4C, 0x4F, 0x4F, 0x50}, // Closed_loop
-												{0x5A, 0xA5, 0x9, 0x82, address ,0x49, 0x44, 0x4C, 0x45},// IDLE
-												{0x5A, 0xA5, 0x12, 0x82, address,0x55, 0x4E, 0x4B, 0x4E, 0x4F, 0x57, 0x4E},// UNKNOWN
-												{0x5A, 0xA5, 0x14, 0x82, 0x66,0x6E, 0x6F, 0x74, 0x45, 0x6E, 0x6F, 0x75, 0x67, 0x68},// chua du du lieu ( address #)
-												{0x5A, 0xA5, 0x11, 0x82, 0x66,0x45, 0x6E, 0x6F, 0x75, 0x67, 0x68},//  du du lieu ( address #)
-												{0x5A, 0xA5, 0x7, 0x82, address,0x4E,0x41}    //  NA 
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x00, 0x00, 0x00}, //working
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x66, 0x75, 0x6c}, // successful
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x66, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x00, 0x00, 0x00, 0x00}, // failed
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00}, // error
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x6c, 0x6f, 0x6f, 0x70},// Closed_loop
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x69, 0x64, 0x6c, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},// IDLE
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x75, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x00, 0x00, 0x00},// UNKNOWN
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x6e, 0x6f, 0x74, 0x65, 0x6e, 0x6f, 0x75, 0x67, 0x68, 0x00},// chua du du lieu ( address #)
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x65, 0x6e, 0x6f, 0x75, 0x67, 0x68, 0x00, 0x00, 0x00, 0x00},//  du du lieu ( address #)
+												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x6c, 0x6f, 0x6f, 0x00}    //  NA 
 											};
 				return status;
 }
@@ -251,15 +251,15 @@ void status_display(uint8_t status1)
 	switch(status1){
         
         case SUCCESSFUL:
-            //HAL_UART_Transmit(&huart2, status_dis_store.successful, sizeof(status_dis_store.successful), HAL_MAX_DELAY);
-						HAL_UART_Transmit(&huart2, send_data, 8, HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.successful, sizeof(status_dis_store.successful), HAL_MAX_DELAY);
+						//HAL_UART_Transmit(&huart2, send, sizeof(send), HAL_MAX_DELAY);
             break;
         case FAILED:
             HAL_UART_Transmit(&huart2, status_dis_store.failed, sizeof(status_dis_store.failed), HAL_MAX_DELAY);
             break;
         case WORKING:
-            //HAL_UART_Transmit(&huart2, status_dis_store.working, sizeof(status_dis_store.working), HAL_MAX_DELAY);
-            HAL_UART_Transmit(&huart2, send, 8, HAL_MAX_DELAY);
+            HAL_UART_Transmit(&huart2, status_dis_store.working, sizeof(status_dis_store.working), HAL_MAX_DELAY);
+            //HAL_UART_Transmit(&huart2, send_data, sizeof(send_data), HAL_MAX_DELAY);
 						break;
         case ERROR:
             HAL_UART_Transmit(&huart2, status_dis_store.error, sizeof(status_dis_store.error), HAL_MAX_DELAY);
@@ -288,26 +288,25 @@ void handle_new_data(uint8_t *new_data)
         if(new_data[j] == 0x00)
         {
 						status_display(ERROR);
-				}
-				
-            // Ng?ng ki?m tra ngay khi phát hi?n l?i
-        
+				}        
     }
 }
+
 void status_changing(uint8_t *data_value)
 {
-	
+	//if(HAL_GetTick() - time > 5000){
 	for(int i = 1; i < 6; i++)
 		{
+			
 				addressConfirm(i);
-				if(*(data_value+i) == 0x01)
+				if(*(data_value+i) == 0x01 )
 				{
 					status_display(WORKING);
 				}
-				   
 		}
+		//time = HAL_GetTick();
+		//}
 }
-
 // FUNCTION FOR DISPLAY INITIAL STATUS ============================================
 
 void Starting(uint8_t *data)
@@ -326,19 +325,20 @@ void Starting(uint8_t *data)
 				all_successful = 0;
 				status_display(FAILED);
 				error_signal = 1;
-			}			
-			 
+			}	
 		}
-		if(all_successful)
+			if(all_successful)
 			{
 				statuschangeSignal = 1;
+				//time = HAL_GetTick();
 				status_changing(data);
 			}
-		if(statuschangeSignal)
+			if(statuschangeSignal)
 			{
+				all_successful = 1;
+				status_changing(data);
 				handle_new_data(data);
 			}
-		
 }
 //// FUNCTION FOR specific BIT (PMM, OTHER) (thu tu cua bit)
 uint8_t check_bit(uint8_t value, uint8_t bit_position) {
@@ -584,7 +584,7 @@ HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
   while (1)
   {
     /* USER CODE END WHILE */
-	//HAL_UART_Transmit(&huart2, send_data, 8, HAL_MAX_DELAY);
+
     /* USER CODE BEGIN 3 */
 //		Starting_phase();
 		
