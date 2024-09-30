@@ -116,7 +116,7 @@ uint8_t data_tx3[3] = {0x99, 0x03, 0x9C};	// testcase 4
 uint8_t th0_Sent = 0; //decide if TH1 and Th2 can be sent
 uint8_t Data_enough_Sent = 0;
 uint8_t th3_sent = 0;
-
+uint8_t Working_count = 0;
 // variable for error check 
 uint8_t error_signal = 0;
 uint8_t error_appear = 0; 
@@ -290,10 +290,10 @@ void addressConfirm(uint8_t index)
 				address = 0x45;   //	Device State (5)
 				break;
 			case 46: 
-				address = 0x45;   // Device State (6)
+				address = 0x46;   // Device State (6)
 				break;
 			case 47: 
-				address = 0x45;   // Device State (7)
+				address = 0x47;   // Device State (7)
 			break;
 			case 60: 
 				address = 0x60; // Other (IDLE / CLOSED LOOP) hien thi o Odrive nhung nam ben duoi
@@ -391,13 +391,13 @@ void Reset_data(uint8_t *dataaa)
 
 
 //// FUNCTION FOR HANDLE OTHER BLOCK==================================================
-
+uint8_t Odrive_State;
 void Other(uint8_t *OtherData) // 5 represents for the position of the bit
 {
 	//if(working_signal || (data_value5[0] == 0x99))
 		//	Other_signal = 1;
 			addressConfirm(60);
-			uint8_t Odrive_State = check_bit((*(OtherData + 4) & Odrive_BIT), 7); //0x80
+			Odrive_State = check_bit((*(OtherData + 4) & Odrive_BIT), 7); //0x80
 			if(Odrive_State == 0x00)
 			{
 				status_display(IDLE);
@@ -407,17 +407,18 @@ void Other(uint8_t *OtherData) // 5 represents for the position of the bit
 				status_display(CLOSED_LOOP);
 			}
 	
-			addressConfirm(61);
-	uint8_t NguonDongLuc = check_bit((*(OtherData + 4) & NguonDongLuc_BIT), 6);
-			if(NguonDongLuc == 0x00)
-			{
-				
-				status_display(ERROR);
-			}
-			else if(NguonDongLuc == 0x01)
-			{
-				status_display(WORKING);
-			}
+			//addressConfirm(61);
+//	uint8_t NguonDongLuc = check_bit((*(OtherData + 4) & NguonDongLuc_BIT), 6);
+//			if(NguonDongLuc == 0x00)
+//			{
+//				
+//				status_display(ERROR);
+//			}
+//			else if(NguonDongLuc == 0x01)
+//			{
+//				
+//				status_display(WORKING);
+//			}
 }
 	
 
@@ -472,7 +473,7 @@ void status_changing(uint8_t *data_value)
 }
 void timeCheck(uint32_t *time1, uint8_t *data)
 {
-		 if((success_failed_signal && HAL_GetTick() - *time1 > 2000) && (working_signal == 0) && (countState == 0))
+		 if((success_failed_signal && HAL_GetTick() - *time1 > 2000) && (working_signal == 0))
 		{
 					working_signal =1;
 					status_changing(data);
@@ -482,49 +483,73 @@ void timeCheck(uint32_t *time1, uint8_t *data)
 		}		
 uint8_t stateEach;
 
-
+uint8_t j;
+uint8_t o;
+uint8_t flag = 0;
 void StateCheck(uint8_t *StateData)
 {
 	for(int i = 1; i < 4; i++)
 	{
-		uint8_t j;
 		
+	
 		if(i == 1)
 			{
 				j = 20;
+				o = 20;
+				
 			}
-		else if( i == 2){j = 30;}
-		else if( i == 3){j = 40;}
+		else if( i == 2){j = 30; o = 30;}
+		else if( i == 3){j = 40;	o = 40;}
+		
+		
 		for(int k = 0; k < 8; k++)
 		{
+				//countState = 1;
+				flag++;
 				addressConfirm(k + j);
-				stateEach = check_bit(*(StateData + i), k);
-			if(stateEach == 0x01) 
-				{
-					status_display(SUCCESSFUL);
-					countState++;
-							if(countState == 8 && success_failed_signal)
+				stateEach = check_bit(*(StateData +i), k);
+					if(stateEach == 0x01) 
+						{	
+							//addressConfirm(k + j);
+							status_display(SUCCESSFUL);
+							countState++;
+							address = 0; 
+								
+						}
+							else if(stateEach == 0x00)
 						{
-							addressConfirm(j + 9);
+							//addressConfirm(k + j);
+							status_display(FAILED);
+							address = 0;
+						}
+
+				
+		} 
+					if(countState == 8 && success_failed_signal)
+						{
+							//addressConfirm(o + 9);
+							if(i == 1){address = 0x29;}
+								else if (i == 2){address = 0x39;}
+								else if (i== 3){address = 0x49;}
+							
 							status_display(SUCCESSFUL);
 							time = HAL_GetTick();
-						}
-				}
-		else if(stateEach == 0x00)
-				{
-					status_display(FAILED);
-								 if(countState != 8 && success_failed_signal)
-							{
-								addressConfirm(j + 9);
-								status_display(FAILED);
-							}
-				}
-				
-		}
-		// MAIN
-				 
-				countState = 0;
+							Working_count++;
+						}	
+				if(countState != 8 && success_failed_signal)
+									{
+								if(i == 1){address = 0x29;}
+								else if (i == 2){address = 0x39;}
+								else if (i== 3){address = 0x49;}
+										//addressConfirm(o + 9);
+										status_display(FAILED);
+										//countState = 0;
+									}
+		flag = 0;
+		// MAIN		
+		countState = 0;
 	}
+	
 }
 
 
@@ -717,11 +742,9 @@ void package_display(uint8_t *data_7Block, uint8_t length)
 //					if(start_signal == 0)
 //							{
 							Data_enough_Sent = 0;
-							//Starting(data_7Block);
-							//Other(data_7Block);
-							//handle_new_data(data_7Block);
+								Other(data_7Block);
 								StateCheck(data_7Block);
-								Other(data_rx);
+								
 							//}
 				}
 }
@@ -737,6 +760,7 @@ void DataSpecial(uint8_t *dataCommand)
 		}
 		else if(dataCommand[0] == 0x98)
 		{
+			//Working_count = 0;
 			success_failed_signal = 1;
 			package_display(data_rx, DATA_LEN);
 		}
@@ -794,12 +818,10 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		uart_flag = 1;
 		HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 		received_data(data);
-		
-		//StartHandle(data_rx);
-		
 		count = 0;
 		countClear =0;
 		start_signal = 0;
+	Working_count = 0;
 	}
 //	 if(huart->Instance == huart2.Instance)
 //	{
@@ -863,17 +885,19 @@ HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
 		
 			if(uart_flag)
 			{
+				uart_flag = 0;
+				
 				check_sum(data_rx, DATA_LEN);
 				DataSpecial(data_rx);
 				
 			//package_display(data_rx, DATA_LEN);
-				
-				uart_flag = 0;
-			}	
-			if(countState == 8 )
+				if(Working_count == 3)
 						{
 					timeCheck(&time,&data);
 						}			
+				
+			}	
+			
 
 	  }
   /* USER CODE END 3 */
