@@ -71,13 +71,13 @@ static void MX_USART2_UART_Init(void);
 #define CLOSED_LOOP 5
 #define IDLE 6
 #define UNKNOWN 7
+#define NA 11
+#define StartSetup 12
 //setting define for Other block 
 #define Odrive_BIT 0x80 // bit 1 (HIGH) 0000 0010
 #define NguonDongLuc_BIT 0x40 // bit 2 0000 0100
 // setting a place for output (PMM,OTher)
 //setting for clear and start command
-uint8_t send_clear[]={0x97, 0x00, 0x00,0x00,0x00, 0x00};
-uint8_t send_start[]={0x98, 0x00,0x00,0x00,0x00,0x00};
 ////uart received setting
 #define DATA_LEN 6
 #define DATA_LEN2 8
@@ -86,16 +86,18 @@ uint8_t data_rx[6];
 uint8_t uart_len = 0;
 uint8_t uart_flag = 0;
 uint8_t receive_flag = 0;
-
+uint8_t countState = 0;
 static uint8_t data_rx2[DATA_LEN2];
 static uint8_t uart_len2 = 0;
 static uint8_t uart_flag2 = 0;
 static uint8_t receive_flag2 = 0;
-uint8_t data ;
+static uint32_t time = 0;
+uint8_t data;
 uint8_t data2;
-uint8_t time;
-uint8_t wk[] = {0x5a, 0xa5, 0x0d, 0x82, 0x00, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67} ; 
-uint8_t ss[] = {0x5a, 0xa5, 0x05, 0x82, 0x62, 0x00, 0x00, 0x02} ; 
+uint8_t count = 0;
+uint8_t success_failed_signal = 0;
+uint8_t count_error = 0;
+//uint32_t *time;
 #define nochoice 12 // (initial value)
 uint8_t data_tx0[3] = {0x99, 0x00, 0x99}; // testcase 1
 uint8_t data_tx1[3] = {0x99, 0x01, 0x9A};	// testcase 2
@@ -114,9 +116,15 @@ uint8_t data_tx3[3] = {0x99, 0x03, 0x9C};	// testcase 4
 uint8_t th0_Sent = 0; //decide if TH1 and Th2 can be sent
 uint8_t Data_enough_Sent = 0;
 uint8_t th3_sent = 0;
+
 // variable for error check 
 uint8_t error_signal = 0;
 uint8_t error_appear = 0; 
+uint8_t working_signal = 0;
+uint8_t countClear = 0;
+uint8_t start_signal = 0;
+uint8_t count_start = 0;
+
 //===========================DISPLAY===========================================
 // error display
 uint8_t errorAnnouce[20];
@@ -137,7 +145,7 @@ uint8_t errorAnnouce[20];
 // FUNCTION FOR RECEIVE AND STORE DATA ====================================================================
 void received_data(uint8_t data)
 {
-	if(data == 0x98 && uart_len == 0)
+	if((data == 0x97 || data == 0x98 || data == 0x99) && uart_len == 0 )
 	
 	{
 		receive_flag = 1;
@@ -158,7 +166,7 @@ void received_data(uint8_t data)
 	}
 	
 	receive_flag = 0;
-	uart_flag = 0;
+	
 }
 
 void received_data2(uint8_t data2)
@@ -186,16 +194,17 @@ void received_data2(uint8_t data2)
 typedef struct
 {
 	
-	uint8_t working[16];
-	uint8_t successful[16];
-	uint8_t failed[16];
-	uint8_t error[16];
-	uint8_t closed_loop[16];
-	uint8_t idle[16];
-	uint8_t unknown_status[16];
-	uint8_t notEnough[16];
-	uint8_t Enough[16];
-	uint8_t NAstatus[16];
+	uint8_t working[23];
+	uint8_t successful[23];
+	uint8_t failed[23];
+	uint8_t error[23];
+	uint8_t closed_loop[23];
+	uint8_t idle[23];
+	uint8_t unknown_status[23];
+	uint8_t notEnough[23];
+	uint8_t Enough[23];
+	uint8_t NAstatus[23];
+	uint8_t StartingAnnouce[23];
 }displayContentstatus;
 displayContentstatus status_dis_store;
 int address;
@@ -204,24 +213,94 @@ void addressConfirm(uint8_t index)
 		
 		switch(index)
 		{
-			case 1:
-				address = 0x21; // SenSor state
+			case 29: 
+				address = 0x29;			//SENSOR STATE (working/error) (MAIN)
 				break;
-			case 2:
-				address = 0x22;  // Odrive state (error/working)
+			case 20:
+				address = 0x20; // SenSor state (0)
 				break;
-			case 3:
-				address = 0x23;  // device state
+			case 21:
+				address = 0x21;  // SenSor state (1)
 				break;
-			case 4:
-				address = 0x24;   //other (Odrive state idle/close loop)
+			case 22:
+				address = 0x22;  // SenSor state (2)
 				break;
-			case 5:
-				address = 0x25;   //other (NguonDongLuc)
+			case 23:
+				address = 0x23;   //SenSor state (3)
 				break;
-			case 6: 
-				address = 0x26;   // checksum
+			case 24:
+				address = 0x24;   //SenSor state  (4)
 				break;
+			case 25: 
+				address = 0x25;   // SenSor state (5)
+				break;
+			case 26: 
+				address = 0x26;   // SenSor state (6)
+				break;
+			case 27: 
+				address = 0x27;   // SenSor state (7)
+				break;
+	
+			case 39:
+				address = 0x39; // ODRIVE (WORKING/ ERROR) nam o tren CLOSEDLOOP / IDLE (MAIN)
+			case 30:
+				address = 0x30; // Odrive state (0)
+				break;
+			case 31:
+				address = 0x31;  // Odrive state (1)
+				break;
+			case 32:
+				address = 0x32;  // Odrive state (2)
+				break;
+			case 33:
+				address = 0x33;   //Odrive state (3)
+				break;
+			case 34:
+				address = 0x34;   //Odrive state (4)
+				break;
+			case 35: 
+				address = 0x35;   // Odrive state (5)
+				break;
+			case 36: 
+				address = 0x36;   // Odrive state (6)
+				break;
+			case 37: 
+				address = 0x37;   // Odrive state (7)
+				break;
+			
+			
+			case 49: 
+				address = 0x49; // DEVICE STATE (WORKING/ ERROR) //(MAIN)
+			case 40:
+				address = 0x40; //  Device State (0)
+				break;
+			case 41:
+				address = 0x41;  // Device State (1)
+				break;
+			case 42:
+				address = 0x42;  // Device State (2)
+				break;
+			case 43:
+				address = 0x43;   // 	Device State (3)
+				break;
+			case 44:
+				address = 0x44;   //	Device State (4)
+				break;
+			case 45: 
+				address = 0x45;   //	Device State (5)
+				break;
+			case 46: 
+				address = 0x45;   // Device State (6)
+				break;
+			case 47: 
+				address = 0x45;   // Device State (7)
+			break;
+			case 60: 
+				address = 0x60; // Other (IDLE / CLOSED LOOP) hien thi o Odrive nhung nam ben duoi
+			break;
+			case 59: 
+				address = 0x61; // Other (ERROR / WORKING) POWER  (MAIN)
+			break;
 		}
 	
 }
@@ -229,16 +308,18 @@ displayContentstatus create_displaystatus()
 {
 	
 	displayContentstatus status = {
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x00, 0x00, 0x00}, //working
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x66, 0x75, 0x6c}, // successful
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x66, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x00, 0x00, 0x00, 0x00}, // failed
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00}, // error
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x6c, 0x6f, 0x6f, 0x70},// Closed_loop
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x69, 0x64, 0x6c, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},// IDLE
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x75, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x00, 0x00, 0x00},// UNKNOWN
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x6e, 0x6f, 0x74, 0x65, 0x6e, 0x6f, 0x75, 0x67, 0x68, 0x00},// chua du du lieu ( address #)
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x65, 0x6e, 0x6f, 0x75, 0x67, 0x68, 0x00, 0x00, 0x00, 0x00},//  du du lieu ( address #)
-												{0x5a, 0xa5, 0x0d, 0x82, address, 0x00, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x6c, 0x6f, 0x6f, 0x00}    //  NA 
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x77, 0x6f, 0x72, 0x6b, 0x69, 0x6e, 0x67, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, //working
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x66, 0x75, 0x6c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // successful
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x66, 0x61, 0x69, 0x6c, 0x65, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // failed
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // error
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x63, 0x6c, 0x6f, 0x73, 0x65, 0x64, 0x6c, 0x6f, 0x6f, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},// Closed_loop
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x69, 0x64, 0x6c, 0x65, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},// IDLE
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x75, 0x6e, 0x6b, 0x6e, 0x6f, 0x77, 0x6e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},// UNKNOWN
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x6e, 0x6f, 0x74, 0x65, 0x6e, 0x6f, 0x75, 0x67, 0x68, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},// chua du du lieu ( address #)
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x65, 0x6e, 0x6f, 0x75, 0x67, 0x68, 0x00, 0x00, 0x00, 0x00,	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},//  du du lieu ( address #)
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x4E, 0x2F, 0x41, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},    //  NA 
+												{0x5a, 0xa5, 0x14, 0x82, address, 0x00, 0x77, 0x61, 0x69, 0x74, 0x69, 0x6E, 0x67, 0x20, 0x74, 0x6F, 0x20, 0x73, 0x65, 0x74, 0x20, 0x75, 0x70}  //  starting annouce
+   
 											};
 				return status;
 }
@@ -273,101 +354,64 @@ void status_display(uint8_t status1)
         case UNKNOWN:
             HAL_UART_Transmit(&huart2, status_dis_store.unknown_status, sizeof(status_dis_store.unknown_status), HAL_MAX_DELAY);
             break;
+				 case NA:
+            HAL_UART_Transmit(&huart2, status_dis_store.NAstatus, sizeof(status_dis_store.NAstatus), HAL_MAX_DELAY);
+            break;
+				 case StartSetup:
+            HAL_UART_Transmit(&huart2, status_dis_store.StartingAnnouce, sizeof(status_dis_store.StartingAnnouce), HAL_MAX_DELAY);
+            break;
 	}	
 	}
 
-
-// FUCNTION FOR STATUS SWITCHING=================================================
-uint8_t statuschangeSignal = 0;
-uint8_t newlocationlist = 0;
-void handle_new_data(uint8_t *new_data)
-{
-	 for(int j = 1; j < 6; j++)
-    {
-				addressConfirm(j);
-        if(new_data[j] == 0x00)
-        {
-						status_display(ERROR);
-				}        
-    }
-}
-
-void status_changing(uint8_t *data_value)
-{
-	//if(HAL_GetTick() - time > 5000){
-	for(int i = 1; i < 6; i++)
-		{
-			
-				addressConfirm(i);
-				if(*(data_value+i) == 0x01 )
-				{
-					status_display(WORKING);
-				}
-		}
-		//time = HAL_GetTick();
-		//}
-}
-// FUNCTION FOR DISPLAY INITIAL STATUS ============================================
-
-void Starting(uint8_t *data)
-{
-		uint8_t all_successful = 1;
-		
-		for(int i = 1; i < 6; i++)
-		{
-			addressConfirm(i);
-			if(data[i] == 0x01)
-			{
-				status_display(SUCCESSFUL);
-			}
-			else if(data[i] == 0x00)
-			{
-				all_successful = 0;
-				status_display(FAILED);
-				error_signal = 1;
-			}	
-		}
-			if(all_successful)
-			{
-				statuschangeSignal = 1;
-				//time = HAL_GetTick();
-				status_changing(data);
-			}
-			if(statuschangeSignal)
-			{
-				all_successful = 1;
-				status_changing(data);
-				handle_new_data(data);
-			}
-}
-//// FUNCTION FOR specific BIT (PMM, OTHER) (thu tu cua bit)
 uint8_t check_bit(uint8_t value, uint8_t bit_position) {
     return (value >> bit_position) & 0x01;
 }
+// FUCNTION FOR STATUS SWITCHING=================================================
+uint8_t statuschangeSignal = 0;
+uint8_t newlocationlist = 0;
+void Reset_data(uint8_t *dataaa)
+{	
+	
+			for(int i = 0; i < DATA_LEN; i++) 
+			{
+					addressConfirm(i);
+					status_display(NA);
+					 // reset all values
+			}
+			uart_len = 0;
+			uart_flag = 0;
+			receive_flag = 0;
+			error_signal = 0;
+			working_signal = 0;
+			time = 0;
+			
+}
+
+
+
+
 //// FUNCTION FOR HANDLE OTHER BLOCK==================================================
 
-void Other(uint8_t *data_value5) // 5 represents for the position of the bit
+void Other(uint8_t *OtherData) // 5 represents for the position of the bit
 {
-	for(int i = 0; i < 6; i++)
-	{
-		addressConfirm(i);
-	if(i == 2)
-	{
-			uint8_t Odrive_State = check_bit((*(data_value5 + 4) & Odrive_BIT), 7);
+	//if(working_signal || (data_value5[0] == 0x99))
+		//	Other_signal = 1;
+			addressConfirm(60);
+			uint8_t Odrive_State = check_bit((*(OtherData + 4) & Odrive_BIT), 7); //0x80
 			if(Odrive_State == 0x00)
 			{
-				
 				status_display(IDLE);
 			}
 			else if(Odrive_State == 0x01)
 			{
 				status_display(CLOSED_LOOP);
 			}
-	}
-	}
-	uint8_t NguonDongLuc = check_bit((*(data_value5 + 4) & NguonDongLuc_BIT), 6);
+	
+			addressConfirm(61);
+	uint8_t NguonDongLuc = check_bit((*(OtherData + 4) & NguonDongLuc_BIT), 6);
 			if(NguonDongLuc == 0x00)
 			{
+				
 				status_display(ERROR);
 			}
 			else if(NguonDongLuc == 0x01)
@@ -375,6 +419,160 @@ void Other(uint8_t *data_value5) // 5 represents for the position of the bit
 				status_display(WORKING);
 			}
 }
+	
+
+
+//void handle_new_data(uint8_t *new_data)
+//{
+//	if(working_signal){
+//	 for(int j = 1; j < 6; j++)
+//    {
+//				addressConfirm(j);
+//			if(j == 2 && Other_signal)
+//			{
+//				Other(new_data);
+//			}
+//			else if(j == 4 && Other_signal)
+//				{
+//				Other(new_data);
+//				}
+//      else if(new_data[j] == 0x00)
+//        {
+//						status_display(ERROR);
+//				}  
+//				}
+//		}
+//  }
+
+
+
+void status_changing(uint8_t *data_value)
+{
+	uint8_t h	= 0;
+	if(working_signal){
+		for(int i = 1; i < 5; i++)
+		{
+				if(i == 1){h = 20;}
+				else if(i == 2){h = 30;}
+				else if(i == 3){h = 40;}
+				else if(i == 4){h = 50;}
+			
+				if(countState == 8 && success_failed_signal == 0 )
+				{
+					addressConfirm(h+9);
+					status_display(WORKING);
+				}
+				else if(countState != 8 && success_failed_signal == 0)
+					{
+					addressConfirm(h+9);
+					status_display(ERROR);
+					}	
+			}
+		}
+}
+void timeCheck(uint32_t *time1, uint8_t *data)
+{
+		 if((success_failed_signal && HAL_GetTick() - *time1 > 2000) && (working_signal == 0) && (countState == 0))
+		{
+					working_signal =1;
+					status_changing(data);
+					Other(data);
+								
+		 }
+		}		
+uint8_t stateEach;
+
+
+void StateCheck(uint8_t *StateData)
+{
+	for(int i = 1; i < 4; i++)
+	{
+		uint8_t j;
+		
+		if(i == 1)
+			{
+				j = 20;
+			}
+		else if( i == 2){j = 30;}
+		else if( i == 3){j = 40;}
+		for(int k = 0; k < 8; k++)
+		{
+				addressConfirm(k + j);
+				stateEach = check_bit(*(StateData + i), k);
+			if(stateEach == 0x01) 
+				{
+					status_display(SUCCESSFUL);
+					countState++;
+							if(countState == 8 && success_failed_signal)
+						{
+							addressConfirm(j + 9);
+							status_display(SUCCESSFUL);
+							time = HAL_GetTick();
+						}
+				}
+		else if(stateEach == 0x00)
+				{
+					status_display(FAILED);
+								 if(countState != 8 && success_failed_signal)
+							{
+								addressConfirm(j + 9);
+								status_display(FAILED);
+							}
+				}
+				
+		}
+		// MAIN
+				 
+				countState = 0;
+	}
+}
+
+
+//void Starting(uint8_t *data) // bo
+//{
+//		uint8_t all_successful = 1;
+//		
+//		for(int i = 0; i < 6; i++)
+//		{
+//			addressConfirm(i);
+//				if(data[i] == 0x01 && working_signal == 1 && (*data == 0x99))
+//				{
+//					status_changing(data); 
+//				}
+//				 else if(data[i] == 0x01 && data[0] == 0x98)
+//				{
+//					count++;
+//					status_display(SUCCESSFUL);
+//					failed_signal = 0;
+//					
+//				}
+//					 if(data[i] == 0x00 && working_signal == 1 && (*data  == 0x99 ||*data == 0x97))
+//				{
+//					handle_new_data(data);
+//					countClear++;
+//				}	
+//				 else if(data[i] == 0x00 && working_signal == 0 && (*data == 0x98))
+//				{
+//					all_successful = 0;
+//					status_display(FAILED);
+//					error_signal = 1;
+//					failed_signal = 1;
+//					
+//				}	
+//			  if(statuschangeSignal && failed_signal ==0)
+//				{
+//					timeCheck(&time,data);
+//				}
+//				
+//			 if(all_successful && (count == 5) && failed_signal == 0)
+//				{
+//					statuschangeSignal = 1;
+//					time = HAL_GetTick();
+//					error_signal = 0;
+//				}
+//		}
+//}		
+		
 // FUNCTION FOR CHECK SUM ==================================================
 uint8_t calculate_checksum(uint8_t *data, size_t length) // calculate checksum
 { 
@@ -433,57 +631,77 @@ void check_sum2(uint8_t *data, uint8_t length) // compare checksum (transmit)
 }
 
 ////Function for command CLEAR==================================================
-void Reset_data()
-{	
-			HAL_UART_Transmit(&huart1, send_clear, sizeof(send_clear), HAL_MAX_DELAY);
-			for(int i = 0; i < DATA_LEN; i++) 
-			{
-					data_rx[i] = 0x00; // reset all values
-				HAL_UART_Transmit(&huart1, status_dis_store.NAstatus, sizeof(status_dis_store.NAstatus), HAL_MAX_DELAY);
-			}
-			uart_len = 0;
-			uart_flag = 0;
-			receive_flag = 0;
-			error_signal = 0;
-		}
+
 
 ////========================================================================================
 ////																			TRANSMITTED DATA
 // CHOICE FOR 0x00, 0x01, 0x02, 0x03
+uint8_t TH0_signal = 0;
+uint8_t TH1_signal = 0;
+uint8_t TH2_signal = 0;
+uint8_t TH3_signal = 0;
+
+
 void choice_selection_data_tx(uint8_t choice, uint8_t *data2)
 {
 	switch(choice)
 	{
 		case Th0: 
 				check_sum2(data_rx2,DATA_LEN2);
-				if(Data_enough_Sent)
+		
+				if(Data_enough_Sent && data2[8] == 1)
 					{
 							HAL_UART_Transmit(&huart2, data_tx0, sizeof(data_tx0), HAL_MAX_DELAY);
 							Data_enough_Sent = 0;
+							TH0_signal = 1;
+						//
+					}
+					else if(Data_enough_Sent && data2[8] == 0)
+					{
+							Data_enough_Sent = 0;
+							TH0_signal = 0;
 					}
 					th0_Sent = 1;
 			break;
 		case Th1: 
-					check_sum2(data_rx2,DATA_LEN2);
-					if(Data_enough_Sent && th0_Sent)
+					check_sum2(data_rx2,DATA_LEN2); 
+					if(Data_enough_Sent && th0_Sent && data2[8] == 1)
 					{
 							HAL_UART_Transmit(&huart2, data_tx1, sizeof(data_tx1), HAL_MAX_DELAY);
+							Data_enough_Sent = 0;
+							TH1_signal =1;
+					}
+					else if(Data_enough_Sent && th0_Sent && data2[8] == 0)
+					{
+							Data_enough_Sent = 0;
+							TH1_signal =0;
 					}
 			break;
 		case Th2: 
 					check_sum2(data_rx2,DATA_LEN2);
-					if(Data_enough_Sent && th0_Sent)
+					if(Data_enough_Sent && th0_Sent && data2[8] == 1)
 					{
 							HAL_UART_Transmit(&huart2, data_tx2, sizeof(data_tx2), HAL_MAX_DELAY);
 							Data_enough_Sent = 0;
+							TH2_signal = 1;
+					}
+					else if(Data_enough_Sent && th0_Sent && data2[8] == 0)
+					{
+							Data_enough_Sent = 0;
+							TH2_signal =0;
 					}
 			break;
 			case Th3: 
 					check_sum2(data_rx2,DATA_LEN2);
-					if(Data_enough_Sent)
+					if(Data_enough_Sent && data2[8] == 1)
 					{
 							HAL_UART_Transmit(&huart2, data_tx3, sizeof(data_tx3), HAL_MAX_DELAY);
+							
+					}
+					else if( Data_enough_Sent && data2[8] == 0)
+					{
 							Data_enough_Sent = 0;
+							TH3_signal = 0;
 					}
 			break;
 			
@@ -494,30 +712,79 @@ void choice_selection_data_tx(uint8_t choice, uint8_t *data2)
 void package_display(uint8_t *data_7Block, uint8_t length)
 {
 			
-			Starting(data_7Block);
-			//Other(data_7Block);
-			//check_sum(data_7Block, DATA_LEN);
-	
+				if(Data_enough_Sent)
+				{
+//					if(start_signal == 0)
+//							{
+							Data_enough_Sent = 0;
+							//Starting(data_7Block);
+							//Other(data_7Block);
+							//handle_new_data(data_7Block);
+								StateCheck(data_7Block);
+								Other(data_rx);
+							//}
+				}
+}
+
+void DataSpecial(uint8_t *dataCommand)
+{
+
+	for(int l = 0; l < 5; l++)
+	{
+		if(dataCommand[0] == 0x97 && dataCommand[l + 1] == 0x00)
+		{
+			Reset_data(data_rx);
+		}
+		else if(dataCommand[0] == 0x98)
+		{
+			success_failed_signal = 1;
+			package_display(data_rx, DATA_LEN);
+		}
+		else if(dataCommand[0] == 0x99)
+		{
+			success_failed_signal = 0;
+			if(working_signal)
+			{
+				status_changing(data_rx);
+			}
+			
+		}
+	}
 }
 void package_sending(uint8_t *data2)
 {
 	for(int i = 0; i < 8; i++)
 	{
-		if(i == 6)
+		if(i == 4)
 		{
-			if(data2[i] == 0x0){
+			if(data2[i] == 0x65){
 			choice_selection_data_tx(Th0,data2);
 			}
-			else if(data2[i] == 0x01 && th0_Sent){
+			else if(data2[i] == 0x66&& th0_Sent){
 			choice_selection_data_tx(Th1,data2);}
-			else if(data2[i] == 0x02 && th0_Sent){
+			else if(data2[i] == 0x67 && th0_Sent){
 			choice_selection_data_tx(Th2,data2);}
-			else if(data2[i] == 0x03 ){
+			else if(data2[i] == 0x68 ){
 			choice_selection_data_tx(Th3,data2);}
 		}
 	}
 }
-
+void StartHandle(uint8_t *dataStart)
+{
+	
+			if(*dataStart == 0x98)
+			{
+				for(int i = 0; i < 6; i++)
+				{
+					if(dataStart[i] == 0x00){
+						Reset_data(dataStart);
+						status_display(StartSetup);
+						start_signal = 1;
+					}
+						
+				}
+			}				
+} 
 
 // FUNCTION FOR CONTINUOUS DATA==================================================
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -527,16 +794,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		uart_flag = 1;
 		HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 		received_data(data);
-		package_display(data_rx, DATA_LEN);
+		
+		//StartHandle(data_rx);
+		
+		count = 0;
+		countClear =0;
+		start_signal = 0;
 	}
-/*	 if(huart->Instance == huart2.Instance)
-	{
-		uart_flag2 = 1;
-		HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
-		received_data2(data2);
-		package_sending(data_rx2);
-	} */
+//	 if(huart->Instance == huart2.Instance)
+//	{
+//		uart_flag2 = 1;
+//		HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
+//		received_data2(data2);
+//		package_sending(data_rx2);
+//	} 
 }
+
 
 
 /* USER CODE END 0 */
@@ -576,6 +849,7 @@ int main(void)
 HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
 
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -586,9 +860,22 @@ HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//		Starting_phase();
 		
-  }
+			if(uart_flag)
+			{
+				check_sum(data_rx, DATA_LEN);
+				DataSpecial(data_rx);
+				
+			//package_display(data_rx, DATA_LEN);
+				
+				uart_flag = 0;
+			}	
+			if(countState == 8 )
+						{
+					timeCheck(&time,&data);
+						}			
+
+	  }
   /* USER CODE END 3 */
 }
 
