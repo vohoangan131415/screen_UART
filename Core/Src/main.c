@@ -80,23 +80,26 @@ static void MX_USART2_UART_Init(void);
 //setting for clear and start command
 ////uart received setting
 #define DATA_LEN 6
-#define DATA_LEN2 8
+#define DATA_LEN2 9
 #define DATA_TRANS_LEN 3
-uint8_t data_rx[6];
+uint8_t data_rx[DATA_LEN];
 uint8_t uart_len = 0;
 uint8_t uart_flag = 0;
 uint8_t receive_flag = 0;
 uint8_t countState = 0;
-static uint8_t data_rx2[DATA_LEN2];
-static uint8_t uart_len2 = 0;
-static uint8_t uart_flag2 = 0;
-static uint8_t receive_flag2 = 0;
-static uint32_t time = 0;
+uint32_t time_hoatdong;
+ uint8_t data_rx2[DATA_LEN2];
+//uint8_t data_rx2[9];
+ uint8_t uart_len2 = 0;
+ uint8_t uart_flag2 = 0;
+ uint8_t receive_flag2 = 0;
+static uint32_t StartTime=0;
+uint32_t First_time = 0;
 uint8_t data;
 uint8_t data2;
 uint8_t count = 0;
 uint8_t success_failed_signal = 0;
-uint8_t count_error = 0;
+
 //uint32_t *time;
 #define nochoice 12 // (initial value)
 uint8_t data_tx0[3] = {0x99, 0x00, 0x99}; // testcase 1
@@ -104,7 +107,8 @@ uint8_t data_tx1[3] = {0x99, 0x01, 0x9A};	// testcase 2
 uint8_t data_tx2[3] = {0x99, 0x02, 0x9B};	// testcase 3
 uint8_t data_tx3[3] = {0x99, 0x03, 0x9C};	// testcase 4
 
-
+uint8_t work_change_signal = 0;
+uint8_t error_change_signal = 0;
 //===========================VARIABLE===========================================
 
 // transmit data signal (transmitted data)
@@ -115,16 +119,17 @@ uint8_t data_tx3[3] = {0x99, 0x03, 0x9C};	// testcase 4
 // variable for choice(transmitted data)
 uint8_t th0_Sent = 0; //decide if TH1 and Th2 can be sent
 uint8_t Data_enough_Sent = 0;
+uint8_t Data_enough_Sent2 = 0;
 uint8_t th3_sent = 0;
 uint8_t Working_count = 0;
 // variable for error check 
-uint8_t error_signal = 0;
-uint8_t error_appear = 0; 
+
 uint8_t working_signal = 0;
 uint8_t countClear = 0;
-uint8_t start_signal = 0;
+
 uint8_t count_start = 0;
 
+uint8_t clear_flag= 0;
 //===========================DISPLAY===========================================
 // error display
 uint8_t errorAnnouce[20];
@@ -143,6 +148,29 @@ uint8_t errorAnnouce[20];
 
 
 // FUNCTION FOR RECEIVE AND STORE DATA ====================================================================
+
+void received_data2(uint8_t data2)
+{
+	
+	if(data2 == 0x5A && uart_len2 == 0)
+	{
+		receive_flag2= 1;
+	}
+	if(receive_flag2)
+	{
+		if(uart_len2 == 8)
+		{
+			data_rx2[uart_len2] = data2;
+			uart_flag2 = 1;
+		}
+		else
+		{
+			data_rx2[uart_len2++] = data2;
+		}
+	}
+		receive_flag2 = 0;
+	
+}
 void received_data(uint8_t data)
 {
 	if((data == 0x97 || data == 0x98 || data == 0x99) && uart_len == 0 )
@@ -150,10 +178,9 @@ void received_data(uint8_t data)
 	{
 		receive_flag = 1;
 	}
-	
 	if(receive_flag)
 	{
-		if(uart_len == 6)
+		if(uart_len == 7)
 		{
 			data_rx[uart_len] = data;
 			uart_flag = 1;
@@ -169,27 +196,18 @@ void received_data(uint8_t data)
 	
 }
 
-void received_data2(uint8_t data2)
+void resetForSending(uint8_t *dataSend)
 {
-	if(data2 == 0x5A && uart_len2 == 0)
+	for(int i =0; i < 9; i++)
 	{
-		receive_flag2= 1;
+		dataSend[i] = 0x00;
+		
 	}
-	if(receive_flag2)
-	{
-		if(uart_len2 == 7)
-		{
-			data_rx2[uart_len2] = data2;
-			uart_flag2 = 1;
-		}
-		else
-		{
-			data_rx2[uart_len2++] = data2;
-		}
-	}
-		receive_flag2 = 0;
-		uart_flag2 = 0;
-}
+	
+	uart_flag2 = 0;
+	//uart_flag = 0;
+} 
+
  //FUNCTION FOR STATUS DISPLAY ====================================================================
 typedef struct
 {
@@ -299,7 +317,7 @@ void addressConfirm(uint8_t index)
 				address = 0x60; // Other (IDLE / CLOSED LOOP) hien thi o Odrive nhung nam ben duoi
 			break;
 			case 59: 
-				address = 0x61; // Other (ERROR / WORKING) POWER  (MAIN)
+				address = 0x59; // Other (ERROR / WORKING) POWER  (MAIN)
 			break;
 		}
 	
@@ -367,36 +385,17 @@ uint8_t check_bit(uint8_t value, uint8_t bit_position) {
     return (value >> bit_position) & 0x01;
 }
 // FUCNTION FOR STATUS SWITCHING=================================================
-uint8_t statuschangeSignal = 0;
-uint8_t newlocationlist = 0;
-void Reset_data(uint8_t *dataaa)
-{	
-	
-			for(int i = 0; i < DATA_LEN; i++) 
-			{
-					addressConfirm(i);
-					status_display(NA);
-					 // reset all values
-			}
-			uart_len = 0;
-			uart_flag = 0;
-			receive_flag = 0;
-			error_signal = 0;
-			working_signal = 0;
-			time = 0;
-			
-}
 
 
-
-
-//// FUNCTION FOR HANDLE OTHER BLOCK==================================================
-uint8_t Odrive_State;
 void Other(uint8_t *OtherData) // 5 represents for the position of the bit
 {
-	//if(working_signal || (data_value5[0] == 0x99))
-		//	Other_signal = 1;
-			addressConfirm(60);
+	uint8_t Odrive_State;
+	uint8_t NguonDongLuc;
+	for(int i = 0; i < 2; i++)
+	{
+		if( i == 0 ) 
+		{
+			address = 0x60;
 			Odrive_State = check_bit((*(OtherData + 4) & Odrive_BIT), 7); //0x80
 			if(Odrive_State == 0x00)
 			{
@@ -406,92 +405,101 @@ void Other(uint8_t *OtherData) // 5 represents for the position of the bit
 			{
 				status_display(CLOSED_LOOP);
 			}
+		}
+		 else if(i == 1) 
+			{
+				address = 0x59;
+				NguonDongLuc = check_bit((*(OtherData + 4) & NguonDongLuc_BIT), 6);
+			if(NguonDongLuc == 0x00)
+			{
+				
+				status_display(ERROR);
+			}
+			else if(NguonDongLuc == 0x01)
+			{
+				
+				status_display(WORKING);
+				Working_count++;
+			}
+			
+
+			}
+		}
+	}
+void Reset_data(uint8_t *dataaa)
+{	
+		
+		uint8_t m = 0;
+		
+		uint8_t done = 0;
+	for(int i = 1; i <6; i++)
+	{
+		
+		if(i == 1) {m = 20;}
+		else if(i == 2) {m = 30;}
+		else if(i == 3) {m = 40;}
+		for(int k = 0; k < 8; k++)
+		{
+			addressConfirm(k+m);
+			status_display(NA);
+			done++;
+		}
+		
+		if(clear_flag && done == 8)
+			{
+							if(i == 1) {address = 0x29; }
+							else if(i== 2) {address = 0x39;}
+							else if(i == 3) {address = 0x49;}
+							else if(i == 4) {address = 0x59;}
+							else if(i == 5) {address = 0x60;}
+							status_display(NA);
+						}
+		done = 0;
+						
+	}
 	
-			//addressConfirm(61);
-//	uint8_t NguonDongLuc = check_bit((*(OtherData + 4) & NguonDongLuc_BIT), 6);
-//			if(NguonDongLuc == 0x00)
-//			{
-//				
-//				status_display(ERROR);
-//			}
-//			else if(NguonDongLuc == 0x01)
-//			{
-//				
-//				status_display(WORKING);
-//			}
+	
 }
+//// FUNCTION FOR HANDLE OTHER BLOCK==================================================
+
+
 	
-
-
-//void handle_new_data(uint8_t *new_data)
-//{
-//	if(working_signal){
-//	 for(int j = 1; j < 6; j++)
-//    {
-//				addressConfirm(j);
-//			if(j == 2 && Other_signal)
-//			{
-//				Other(new_data);
-//			}
-//			else if(j == 4 && Other_signal)
-//				{
-//				Other(new_data);
-//				}
-//      else if(new_data[j] == 0x00)
-//        {
-//						status_display(ERROR);
-//				}  
-//				}
-//		}
-//  }
-
-
 
 void status_changing(uint8_t *data_value)
 {
-	uint8_t h	= 0;
+	
 	if(working_signal){
 		for(int i = 1; i < 5; i++)
 		{
-				if(i == 1){h = 20;}
-				else if(i == 2){h = 30;}
-				else if(i == 3){h = 40;}
-				else if(i == 4){h = 50;}
+				if(i == 1){address = 0x29;}
+				else if(i == 2){address = 0x39;}
+				else if(i == 3){address = 0x49;}
+				else if(i == 4){address = 0x59;}
 			
-				if(countState == 8 && success_failed_signal == 0 )
+				if(success_failed_signal)
 				{
-					addressConfirm(h+9);
+					
 					status_display(WORKING);
+					work_change_signal = 0;
+				
 				}
-				else if(countState != 8 && success_failed_signal == 0)
-					{
-					addressConfirm(h+9);
-					status_display(ERROR);
-					}	
 			}
 		}
 }
-void timeCheck(uint32_t *time1, uint8_t *data)
-{
-		 if((success_failed_signal && HAL_GetTick() - *time1 > 2000) && (working_signal == 0))
-		{
-					working_signal =1;
-					status_changing(data);
-					Other(data);
-								
-		 }
-		}		
-uint8_t stateEach;
 
-uint8_t j;
-uint8_t o;
-uint8_t flag = 0;
+
+
+
+
+
 void StateCheck(uint8_t *StateData)
 {
+	
 	for(int i = 1; i < 4; i++)
 	{
-		
-	
+		uint8_t j;
+		uint8_t o;
+		uint8_t stateEach;
 		if(i == 1)
 			{
 				j = 20;
@@ -500,12 +508,12 @@ void StateCheck(uint8_t *StateData)
 			}
 		else if( i == 2){j = 30; o = 30;}
 		else if( i == 3){j = 40;	o = 40;}
-		
+		//else if ( i == 4) {address = 0x61; Other(StateData);}
 		
 		for(int k = 0; k < 8; k++)
 		{
 				//countState = 1;
-				flag++;
+				
 				addressConfirm(k + j);
 				stateEach = check_bit(*(StateData +i), k);
 					if(stateEach == 0x01) 
@@ -531,73 +539,76 @@ void StateCheck(uint8_t *StateData)
 							if(i == 1){address = 0x29;}
 								else if (i == 2){address = 0x39;}
 								else if (i== 3){address = 0x49;}
-							
-							status_display(SUCCESSFUL);
-							time = HAL_GetTick();
+							if(*StateData == 0x98 && (working_signal == 0))
+								{
+								status_display(SUCCESSFUL);
+								}
+							else if(*StateData == 0x99 && (working_signal == 1))
+							{
+//								work_change_signal =1;
+									status_display(WORKING);
+							}
+//							else if(*StateData == 0x98 && clear_flag)
+//							{
+//								status_display(SUCCESSFUL);
+//								working_signal = 0;
+//								clear_flag = 0;
+//								Working_count = 0;
+//							}
 							Working_count++;
-						}	
+								
+						}
+							
 				if(countState != 8 && success_failed_signal)
 									{
 								if(i == 1){address = 0x29;}
 								else if (i == 2){address = 0x39;}
 								else if (i== 3){address = 0x49;}
 										//addressConfirm(o + 9);
-										status_display(FAILED);
-										//countState = 0;
+									if(*StateData == 0x98 && (working_signal == 0))
+										{
+											status_display(FAILED);
+										}
+									else if(*StateData == 0x99 && (working_signal == 1))
+									{
+										//error_change_signal = 1 ;
+										status_display(ERROR);
 									}
-		flag = 0;
+//										else if(*StateData == 0x98 && clear_flag)
+//											{
+//												status_display(SUCCESSFUL);
+//												working_signal = 0;
+//												clear_flag = 0;
+//												Working_count = 0;
+//											}
+									}
+					
+		
 		// MAIN		
 		countState = 0;
+
 	}
-	
+
+	if(Working_count == 4){
+	StartTime = HAL_GetTick();
+
+}
+		
 }
 
+void timeCheck(uint32_t *time1, uint8_t *data)
+{
+			uint32_t currentTime = HAL_GetTick();
+	
+		 if(success_failed_signal && (currentTime - *time1 > 2000) && (working_signal == 0))
+		{
+			
+					working_signal =1;
+					status_changing(data);
+				Working_count = 0;
 
-//void Starting(uint8_t *data) // bo
-//{
-//		uint8_t all_successful = 1;
-//		
-//		for(int i = 0; i < 6; i++)
-//		{
-//			addressConfirm(i);
-//				if(data[i] == 0x01 && working_signal == 1 && (*data == 0x99))
-//				{
-//					status_changing(data); 
-//				}
-//				 else if(data[i] == 0x01 && data[0] == 0x98)
-//				{
-//					count++;
-//					status_display(SUCCESSFUL);
-//					failed_signal = 0;
-//					
-//				}
-//					 if(data[i] == 0x00 && working_signal == 1 && (*data  == 0x99 ||*data == 0x97))
-//				{
-//					handle_new_data(data);
-//					countClear++;
-//				}	
-//				 else if(data[i] == 0x00 && working_signal == 0 && (*data == 0x98))
-//				{
-//					all_successful = 0;
-//					status_display(FAILED);
-//					error_signal = 1;
-//					failed_signal = 1;
-//					
-//				}	
-//			  if(statuschangeSignal && failed_signal ==0)
-//				{
-//					timeCheck(&time,data);
-//				}
-//				
-//			 if(all_successful && (count == 5) && failed_signal == 0)
-//				{
-//					statuschangeSignal = 1;
-//					time = HAL_GetTick();
-//					error_signal = 0;
-//				}
-//		}
-//}		
-		
+		 }
+		}		
 // FUNCTION FOR CHECK SUM ==================================================
 uint8_t calculate_checksum(uint8_t *data, size_t length) // calculate checksum
 { 
@@ -624,34 +635,34 @@ void check_sum(uint8_t *data, uint8_t length) // compare checksum (received)
 		if(calculated_checksum == received_transmitted_checksum)
 		{
 				Data_enough_Sent = 1;
-				HAL_UART_Transmit(&huart1, status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY);
+				//HAL_UART_Transmit(&huart1, status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY);
 				
 		}
 		else
 		{
-			HAL_UART_Transmit(&huart1,status_dis_store.notEnough, sizeof(status_dis_store.notEnough), HAL_MAX_DELAY );
+			//HAL_UART_Transmit(&huart1,status_dis_store.notEnough, sizeof(status_dis_store.notEnough), HAL_MAX_DELAY );
 		}
 }
-void check_sum2(uint8_t *data, uint8_t length) // compare checksum (transmit)
+void check_sum2(uint8_t *data, uint8_t length) // compare checksum (transmit) // uart2
 {
 		status_dis_store = create_displaystatus();
 		uint8_t received_transmitted_checksum = data[length - 1];
 		uint8_t calculated_checksum = calculate_checksum2(data, length);
 		if(calculated_checksum == received_transmitted_checksum)
 		{
-				Data_enough_Sent = 1;
-				HAL_UART_Transmit(&huart2, status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY);
+				Data_enough_Sent2 = 1;
+				//HAL_UART_Transmit(&huart1, status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY);
 				
 		}
 		else if(calculated_checksum == received_transmitted_checksum && th3_sent)
 		{
-			Data_enough_Sent = 1;
+			Data_enough_Sent2 = 1;
 			th3_sent = 0;
-			HAL_UART_Transmit(&huart2,status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY );
+			//HAL_UART_Transmit(&huart1,status_dis_store.Enough, sizeof(status_dis_store.Enough), HAL_MAX_DELAY );
 		}
 		else
 		{
-			HAL_UART_Transmit(&huart2,status_dis_store.notEnough, sizeof(status_dis_store.notEnough), HAL_MAX_DELAY );
+			//HAL_UART_Transmit(&huart1,status_dis_store.notEnough, sizeof(status_dis_store.notEnough), HAL_MAX_DELAY );
 		}
 }
 
@@ -660,7 +671,7 @@ void check_sum2(uint8_t *data, uint8_t length) // compare checksum (transmit)
 
 ////========================================================================================
 ////																			TRANSMITTED DATA
-// CHOICE FOR 0x00, 0x01, 0x02, 0x03
+// CHOICE FOR 0x00, 0x01, 0x02, 0x03 UART2
 uint8_t TH0_signal = 0;
 uint8_t TH1_signal = 0;
 uint8_t TH2_signal = 0;
@@ -674,64 +685,65 @@ void choice_selection_data_tx(uint8_t choice, uint8_t *data2)
 		case Th0: 
 				check_sum2(data_rx2,DATA_LEN2);
 		
-				if(Data_enough_Sent && data2[8] == 1)
+				if(Data_enough_Sent2 && data2[8] == 1)
 					{
-							HAL_UART_Transmit(&huart2, data_tx0, sizeof(data_tx0), HAL_MAX_DELAY);
-							Data_enough_Sent = 0;
+							HAL_UART_Transmit(&huart1, data_tx0, sizeof(data_tx0), HAL_MAX_DELAY);
+							Data_enough_Sent2 = 0;
 							TH0_signal = 1;
 						//
 					}
-					else if(Data_enough_Sent && data2[8] == 0)
+					else if(Data_enough_Sent2 && data2[8] == 0)
 					{
-							Data_enough_Sent = 0;
+							Data_enough_Sent2 = 0;
 							TH0_signal = 0;
 					}
 					th0_Sent = 1;
 			break;
 		case Th1: 
 					check_sum2(data_rx2,DATA_LEN2); 
-					if(Data_enough_Sent && th0_Sent && data2[8] == 1)
+					if(Data_enough_Sent2 && th0_Sent && data2[8] == 1)
 					{
-							HAL_UART_Transmit(&huart2, data_tx1, sizeof(data_tx1), HAL_MAX_DELAY);
-							Data_enough_Sent = 0;
+							HAL_UART_Transmit(&huart1, data_tx1, sizeof(data_tx1), HAL_MAX_DELAY);
+							Data_enough_Sent2 = 0;
 							TH1_signal =1;
 					}
-					else if(Data_enough_Sent && th0_Sent && data2[8] == 0)
+					else if(Data_enough_Sent2 && th0_Sent && data2[8] == 0)
 					{
-							Data_enough_Sent = 0;
+							Data_enough_Sent2 = 0;
 							TH1_signal =0;
 					}
 			break;
 		case Th2: 
 					check_sum2(data_rx2,DATA_LEN2);
-					if(Data_enough_Sent && th0_Sent && data2[8] == 1)
+					if(Data_enough_Sent2 && th0_Sent && data2[8] == 1)
 					{
-							HAL_UART_Transmit(&huart2, data_tx2, sizeof(data_tx2), HAL_MAX_DELAY);
-							Data_enough_Sent = 0;
+							HAL_UART_Transmit(&huart1, data_tx2, sizeof(data_tx2), HAL_MAX_DELAY);
+							Data_enough_Sent2 = 0;
 							TH2_signal = 1;
 					}
-					else if(Data_enough_Sent && th0_Sent && data2[8] == 0)
+					else if(Data_enough_Sent2 && th0_Sent && data2[8] == 0)
 					{
-							Data_enough_Sent = 0;
+							Data_enough_Sent2 = 0;
 							TH2_signal =0;
 					}
 			break;
 			case Th3: 
 					check_sum2(data_rx2,DATA_LEN2);
-					if(Data_enough_Sent && data2[8] == 1)
+					if(Data_enough_Sent2 && data2[8] == 1)
 					{
-							HAL_UART_Transmit(&huart2, data_tx3, sizeof(data_tx3), HAL_MAX_DELAY);
+							HAL_UART_Transmit(&huart1, data_tx3, sizeof(data_tx3), HAL_MAX_DELAY);
 							
 					}
-					else if( Data_enough_Sent && data2[8] == 0)
+					else if( Data_enough_Sent2 && data2[8] == 0)
 					{
-							Data_enough_Sent = 0;
+							Data_enough_Sent2 = 0;
 							TH3_signal = 0;
 					}
 			break;
 			
 	}
 }
+
 //===================================================================================================================
 // FUNCTION FOR DISPLAY 7 block, value of PMM, OTHER, status, check sum ==================================================
 void package_display(uint8_t *data_7Block, uint8_t length)
@@ -739,76 +751,71 @@ void package_display(uint8_t *data_7Block, uint8_t length)
 			
 				if(Data_enough_Sent)
 				{
-//					if(start_signal == 0)
-//							{
-							Data_enough_Sent = 0;
+								Data_enough_Sent = 0;
 								Other(data_7Block);
 								StateCheck(data_7Block);
 								
-							//}
+					
 				}
 }
 
-void DataSpecial(uint8_t *dataCommand)
+void package_sending(uint8_t *data2)  // UART2
+{
+	for(int i = 0; i < 8; i++)
+	{
+		if(data2[0] == 0x5A && (data2[8] == 1 || data2[8] ==0))
+		{
+			if(i == 4)
+				{
+					if(data2[i] == 0x65){
+					choice_selection_data_tx(Th0,data2);
+					}
+					else if(data2[i] == 0x66&& th0_Sent){
+					choice_selection_data_tx(Th1,data2);}
+					else if(data2[i] == 0x67 && th0_Sent){
+					choice_selection_data_tx(Th2,data2);}
+					else if(data2[i] == 0x68 ){
+					choice_selection_data_tx(Th3,data2);}
+				}
+	}
+}
+}
+void DataCommand(uint8_t *dataCommand)
 {
 
 	for(int l = 0; l < 5; l++)
 	{
+
 		if(dataCommand[0] == 0x97 && dataCommand[l + 1] == 0x00)
 		{
+			clear_flag = 1;
 			Reset_data(data_rx);
+			time_hoatdong = 0;
+			working_signal = 0;
 		}
-		else if(dataCommand[0] == 0x98)
+		 if(dataCommand[0] == 0x98)
 		{
-			//Working_count = 0;
 			success_failed_signal = 1;
 			package_display(data_rx, DATA_LEN);
 		}
-		else if(dataCommand[0] == 0x99)
+		 if(dataCommand[0] == 0x99)
 		{
-			success_failed_signal = 0;
+			
 			if(working_signal)
 			{
-				status_changing(data_rx);
+					StateCheck(data_rx);
+					Other(data_rx);
 			}
 			
 		}
+		
 	}
-}
-void package_sending(uint8_t *data2)
-{
-	for(int i = 0; i < 8; i++)
-	{
-		if(i == 4)
+	if(dataCommand[0] == 0x5A)
 		{
-			if(data2[i] == 0x65){
-			choice_selection_data_tx(Th0,data2);
-			}
-			else if(data2[i] == 0x66&& th0_Sent){
-			choice_selection_data_tx(Th1,data2);}
-			else if(data2[i] == 0x67 && th0_Sent){
-			choice_selection_data_tx(Th2,data2);}
-			else if(data2[i] == 0x68 ){
-			choice_selection_data_tx(Th3,data2);}
+			
+			package_sending(data_rx2);
 		}
-	}
 }
-void StartHandle(uint8_t *dataStart)
-{
-	
-			if(*dataStart == 0x98)
-			{
-				for(int i = 0; i < 6; i++)
-				{
-					if(dataStart[i] == 0x00){
-						Reset_data(dataStart);
-						status_display(StartSetup);
-						start_signal = 1;
-					}
-						
-				}
-			}				
-} 
 
 // FUNCTION FOR CONTINUOUS DATA==================================================
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -816,20 +823,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	if(huart->Instance == huart1.Instance)
 	{
 		uart_flag = 1;
+		
 		HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 		received_data(data);
-		count = 0;
-		countClear =0;
-		start_signal = 0;
-	Working_count = 0;
+		Working_count = 0;
+		
 	}
-//	 if(huart->Instance == huart2.Instance)
-//	{
-//		uart_flag2 = 1;
-//		HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
-//		received_data2(data2);
-//		package_sending(data_rx2);
-//	} 
+	  if(huart->Instance == huart2.Instance)
+	{
+		
+		uart_flag2 = 1;
+		
+		HAL_UART_Receive_IT(&huart2, data_rx2,9);
+		received_data2(data2);
+		
+	}
+	  
 }
 
 
@@ -868,6 +877,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
 HAL_UART_Receive_IT(&huart1, data_rx, sizeof(data_rx));
 HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
 
@@ -876,30 +886,43 @@ HAL_UART_Receive_IT(&huart2, data_rx2, sizeof(data_rx2));
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+		//	time_hoatdong = HAL_GetTick();
+		
+	
 		
 			if(uart_flag)
 			{
-				uart_flag = 0;
 				
 				check_sum(data_rx, DATA_LEN);
-				DataSpecial(data_rx);
+					
+				DataCommand(data_rx);
+				countClear =0;
+				//memset(data_rx2, 0x00, 9);
+				uart_flag = 0;
 				
-			//package_display(data_rx, DATA_LEN);
-				if(Working_count == 3)
-						{
-					timeCheck(&time,&data);
-						}			
 				
-			}	
+			}
 			
+			  else if(uart_flag2 )
+			{
+					uart_flag2 = 0;
+				DataCommand(data_rx2);
+				
 
-	  }
+			}
+			if(Working_count == 4)
+			{
+				timeCheck(&StartTime, data_rx);
+			}
+			}
+
+	  
   /* USER CODE END 3 */
 }
 
