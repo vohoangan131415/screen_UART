@@ -1,0 +1,9 @@
+screen_uart\datacommand.o: ..\Mylibrary\DataCommand.c
+screen_uart\datacommand.o: ..\Mylibrary\DataCommand.h
+screen_uart\datacommand.o: D:\keilc\ARM\ARMCC\Bin\..\include\stdint.h
+screen_uart\datacommand.o: ..\Mylibrary\StateCheck.h
+screen_uart\datacommand.o: ..\Mylibrary\Other.h
+screen_uart\datacommand.o: ..\Mylibrary\ResetData.h
+screen_uart\datacommand.o: ..\Mylibrary\receivedata.h
+screen_uart\datacommand.o: ..\Mylibrary\checksum.h
+screen_uart\datacommand.o: D:\keilc\ARM\ARMCC\Bin\..\include\stddef.h

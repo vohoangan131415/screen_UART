@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../Mylibrary</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -492,6 +492,81 @@
               <FileName>system_stm32f1xx.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/system_stm32f1xx.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>New Group</GroupName>
+          <Files>
+            <File>
+              <FileName>receivedata.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\receivedata.c</FilePath>
+            </File>
+            <File>
+              <FileName>address.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\address.c</FilePath>
+            </File>
+            <File>
+              <FileName>statusdisplay.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\statusdisplay.c</FilePath>
+            </File>
+            <File>
+              <FileName>Other.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\Other.c</FilePath>
+            </File>
+            <File>
+              <FileName>StateCheck.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\StateCheck.c</FilePath>
+            </File>
+            <File>
+              <FileName>TimeCheck.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\TimeCheck.c</FilePath>
+            </File>
+            <File>
+              <FileName>StatusChanging.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\StatusChanging.c</FilePath>
+            </File>
+            <File>
+              <FileName>checksum.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\checksum.c</FilePath>
+            </File>
+            <File>
+              <FileName>DataCommand.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\DataCommand.c</FilePath>
+            </File>
+            <File>
+              <FileName>ResetData.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\ResetData.c</FilePath>
+            </File>
+            <File>
+              <FileName>checksum2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\checksum2.c</FilePath>
+            </File>
+            <File>
+              <FileName>packagesending.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\packagesending.c</FilePath>
+            </File>
+            <File>
+              <FileName>choice_selection.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\choice_selection.c</FilePath>
+            </File>
+            <File>
+              <FileName>receivedata2.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Mylibrary\receivedata2.c</FilePath>
             </File>
           </Files>
         </Group>
