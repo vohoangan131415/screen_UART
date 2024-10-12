@@ -1,7 +1,6 @@
 screen_uart\timecheck.o: ..\Mylibrary\TimeCheck.c
 screen_uart\timecheck.o: ..\Mylibrary\TimeCheck.h
 screen_uart\timecheck.o: D:\keilc\ARM\ARMCC\Bin\..\include\stdint.h
-screen_uart\timecheck.o: ..\Mylibrary\StatusChanging.h
 screen_uart\timecheck.o: ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f1xx.h
 screen_uart\timecheck.o: ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h
 screen_uart\timecheck.o: ../Drivers/CMSIS/Include/core_cm3.h
@@ -27,3 +26,4 @@ screen_uart\timecheck.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash
 screen_uart\timecheck.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
 screen_uart\timecheck.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
 screen_uart\timecheck.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+screen_uart\timecheck.o: ..\Mylibrary\statuschanging.h

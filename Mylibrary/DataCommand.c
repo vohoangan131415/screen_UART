@@ -29,8 +29,9 @@ void DataCommand(uint8_t *dataCommand)
 					
 					if(working_signal)
 					{
-							StateCheck(data_rx);
+							
 							Other(data_rx);
+							StateCheck(data_rx);
 					}
 				}
 }
@@ -40,9 +41,8 @@ void package_display(uint8_t *data_7Block, uint8_t length)
 				if(Data_enough_Sent)
 				{
 								
-								
-								StateCheck(data_7Block);
 								Other(data_7Block);
+								StateCheck(data_7Block);								
 								Data_enough_Sent = 0;
 }
 }

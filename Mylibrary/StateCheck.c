@@ -1,17 +1,22 @@
 #include "StateCheck.h"
 #include "statusdisplay.h"
- uint32_t StartTime=0;
-
+#include "receivedata.h"
+ uint32_t StartTime;
 uint8_t check_bit(uint8_t value, uint8_t bit_position) {
     return (value >> bit_position) & 0x01;
 }
+
+
+
 void StateCheck(uint8_t *StateData)
 {
+	
+		uint8_t stateEach;
     for(int i = 1; i < 4; i++)
     {
         uint8_t j;
         uint8_t o;
-        uint8_t stateEach;
+        
         if(i == 1)
         {
             j = 20;
@@ -27,7 +32,6 @@ void StateCheck(uint8_t *StateData)
             j = 40;
             o = 40;
         }
-        //else if (i == 4) {address = 0x61; Other(StateData);}
 
         for(int k = 0; k < 8; k++)
         {
@@ -79,11 +83,13 @@ void StateCheck(uint8_t *StateData)
             }
         }
 
+				
         countState = 0;
-
-        if(Working_count == 4)
+        
+    }
+		if(Working_count == 4)
         {
             StartTime = HAL_GetTick();
+						
         }
-    }
 }

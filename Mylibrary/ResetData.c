@@ -1,11 +1,12 @@
 #include "ResetData.h"
 #include "address.h"
 #include "statusdisplay.h"
+#include "StateCheck.h"
+
 void Reset_data(uint8_t *dataaa)
 {   
     uint8_t m = 0;
     uint8_t done = 0;
-
     for(int i = 1; i < 6; i++)
     {
         if(i == 1) { m = 20; }
@@ -31,4 +32,5 @@ void Reset_data(uint8_t *dataaa)
 
         done = 0;
     }
+		StartTime = 0;
 }

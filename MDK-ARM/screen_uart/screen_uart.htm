@@ -3,7 +3,7 @@
 <title>Static Call Graph - [screen_uart\screen_uart.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image screen_uart\screen_uart.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Sat Oct 12 09:18:53 2024
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Sat Oct 12 21:57:11 2024
 <BR><P>
 <H3>Maximum Stack Usage =        632 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -449,8 +449,8 @@ Global Symbols
 </UL>
 <BR>[Calls]<UL><LI><a href="#[51]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Reset_data
 <LI><a href="#[54]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;package_display
-<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
-<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
+<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
+<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
 </UL>
 <BR>[Called By]<UL><LI><a href="#[45]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
@@ -482,7 +482,7 @@ Global Symbols
 <LI><a href="#[5f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_RCC_OscConfig
 <LI><a href="#[5c]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_RCC_ClockConfig
 <LI><a href="#[72]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_Transmit
-<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
+<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
 </UL>
 
 <P><STRONG><a name="[77]"></a>HAL_IncTick</STRONG> (Thumb, 12 bytes, Stack size 0 bytes, stm32f1xx_hal.o(i.HAL_IncTick))
@@ -621,7 +621,7 @@ Global Symbols
 <LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_RxCpltCallback
 </UL>
 
-<P><STRONG><a name="[6f]"></a>HAL_UART_RxCpltCallback</STRONG> (Thumb, 82 bytes, Stack size 16 bytes, main.o(i.HAL_UART_RxCpltCallback))
+<P><STRONG><a name="[6f]"></a>HAL_UART_RxCpltCallback</STRONG> (Thumb, 76 bytes, Stack size 16 bytes, main.o(i.HAL_UART_RxCpltCallback))
 <BR><BR>[Stack]<UL><LI>Max Depth = 28<LI>Call Chain = HAL_UART_RxCpltCallback &rArr; received_data2
 </UL>
 <BR>[Calls]<UL><LI><a href="#[71]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;received_data2
@@ -666,7 +666,7 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f103xb.o(RESET)
 </UL>
-<P><STRONG><a name="[53]"></a>Other</STRONG> (Thumb, 118 bytes, Stack size 24 bytes, other.o(i.Other))
+<P><STRONG><a name="[52]"></a>Other</STRONG> (Thumb, 118 bytes, Stack size 24 bytes, other.o(i.Other))
 <BR><BR>[Stack]<UL><LI>Max Depth = 560<LI>Call Chain = Other &rArr; status_display &rArr; create_displaystatus &rArr; __aeabi_memcpy4
 </UL>
 <BR>[Calls]<UL><LI><a href="#[74]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;check_bit
@@ -679,7 +679,7 @@ Global Symbols
 <P><STRONG><a name="[b]"></a>PendSV_Handler</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f1xx_it.o(i.PendSV_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f103xb.o(RESET)
 </UL>
-<P><STRONG><a name="[51]"></a>Reset_data</STRONG> (Thumb, 136 bytes, Stack size 24 bytes, resetdata.o(i.Reset_data))
+<P><STRONG><a name="[51]"></a>Reset_data</STRONG> (Thumb, 142 bytes, Stack size 24 bytes, resetdata.o(i.Reset_data))
 <BR><BR>[Stack]<UL><LI>Max Depth = 560<LI>Call Chain = Reset_data &rArr; status_display &rArr; create_displaystatus &rArr; __aeabi_memcpy4
 </UL>
 <BR>[Calls]<UL><LI><a href="#[75]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;status_display
@@ -691,7 +691,7 @@ Global Symbols
 <P><STRONG><a name="[9]"></a>SVC_Handler</STRONG> (Thumb, 2 bytes, Stack size 0 bytes, stm32f1xx_it.o(i.SVC_Handler))
 <BR>[Address Reference Count : 1]<UL><LI> startup_stm32f103xb.o(RESET)
 </UL>
-<P><STRONG><a name="[52]"></a>StateCheck</STRONG> (Thumb, 304 bytes, Stack size 40 bytes, statecheck.o(i.StateCheck))
+<P><STRONG><a name="[53]"></a>StateCheck</STRONG> (Thumb, 302 bytes, Stack size 40 bytes, statecheck.o(i.StateCheck))
 <BR><BR>[Stack]<UL><LI>Max Depth = 576<LI>Call Chain = StateCheck &rArr; status_display &rArr; create_displaystatus &rArr; __aeabi_memcpy4
 </UL>
 <BR>[Calls]<UL><LI><a href="#[5d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick
@@ -747,7 +747,7 @@ Global Symbols
 </UL>
 <P><STRONG><a name="[76]"></a>addressConfirm</STRONG> (Thumb, 172 bytes, Stack size 0 bytes, address.o(i.addressConfirm))
 <BR><BR>[Called By]<UL><LI><a href="#[51]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Reset_data
-<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
+<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
 </UL>
 
 <P><STRONG><a name="[7d]"></a>calculate_checksum</STRONG> (Thumb, 26 bytes, Stack size 8 bytes, checksum.o(i.calculate_checksum))
@@ -763,7 +763,7 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[74]"></a>check_bit</STRONG> (Thumb, 8 bytes, Stack size 0 bytes, statecheck.o(i.check_bit))
-<BR><BR>[Called By]<UL><LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
+<BR><BR>[Called By]<UL><LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
 </UL>
 
 <P><STRONG><a name="[7c]"></a>check_sum</STRONG> (Thumb, 24 bytes, Stack size 8 bytes, checksum.o(i.check_sum))
@@ -818,8 +818,8 @@ Global Symbols
 <P><STRONG><a name="[54]"></a>package_display</STRONG> (Thumb, 30 bytes, Stack size 16 bytes, datacommand.o(i.package_display))
 <BR><BR>[Stack]<UL><LI>Max Depth = 592<LI>Call Chain = package_display &rArr; StateCheck &rArr; status_display &rArr; create_displaystatus &rArr; __aeabi_memcpy4
 </UL>
-<BR>[Calls]<UL><LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
-<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
+<BR>[Calls]<UL><LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
+<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
 </UL>
 <BR>[Called By]<UL><LI><a href="#[50]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;DataCommand
 </UL>
@@ -832,8 +832,8 @@ Global Symbols
 <BR>[Called By]<UL><LI><a href="#[45]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;main
 </UL>
 
-<P><STRONG><a name="[70]"></a>received_data</STRONG> (Thumb, 56 bytes, Stack size 8 bytes, receivedata.o(i.received_data))
-<BR><BR>[Stack]<UL><LI>Max Depth = 8<LI>Call Chain = received_data
+<P><STRONG><a name="[70]"></a>received_data</STRONG> (Thumb, 58 bytes, Stack size 12 bytes, receivedata.o(i.received_data))
+<BR><BR>[Stack]<UL><LI>Max Depth = 12<LI>Call Chain = received_data
 </UL>
 <BR>[Called By]<UL><LI><a href="#[6f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_RxCpltCallback
 </UL>
@@ -861,11 +861,11 @@ Global Symbols
 </UL>
 <BR>[Called By]<UL><LI><a href="#[51]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Reset_data
 <LI><a href="#[85]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;status_changing
-<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
-<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
+<LI><a href="#[53]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;StateCheck
+<LI><a href="#[52]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;Other
 </UL>
 
-<P><STRONG><a name="[83]"></a>timeCheck</STRONG> (Thumb, 54 bytes, Stack size 16 bytes, timecheck.o(i.timeCheck))
+<P><STRONG><a name="[83]"></a>timeCheck</STRONG> (Thumb, 62 bytes, Stack size 16 bytes, timecheck.o(i.timeCheck))
 <BR><BR>[Stack]<UL><LI>Max Depth = 584<LI>Call Chain = timeCheck &rArr; status_changing &rArr; status_display &rArr; create_displaystatus &rArr; __aeabi_memcpy4
 </UL>
 <BR>[Calls]<UL><LI><a href="#[5d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_GetTick

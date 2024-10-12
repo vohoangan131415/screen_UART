@@ -94,20 +94,24 @@ uint8_t countClear = 0;
 uint8_t clear_flag= 0;
 uint8_t flag = 0;
 uint8_t Count_data = 0;
-
 uint8_t data2;
 uint8_t data;
 
 // FUNCTION FOR CONTINUOUS DATA==================================================
+
+
+
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	
 	if(huart->Instance == huart1.Instance)
 {
-		uart_flag = 1;
+		//uart_flag = 1;
 		Working_count = 0;
 		received_data(data);
 		HAL_UART_Receive_IT(&huart1, &data, 1);
+	 
 }
 	   if(huart->Instance == huart2.Instance)
 {
@@ -186,7 +190,11 @@ HAL_UART_Receive_IT(&huart2, &data2,1);
     /* USER CODE BEGIN 3 */
 		
 
-		
+			if(Working_count == 4 )
+			{
+				timeCheck(&StartTime, data_rx);
+			}
+			 
 			if(uart_flag)
 			{
 				
@@ -196,10 +204,7 @@ HAL_UART_Receive_IT(&huart2, &data2,1);
 				uart_flag = 0;
 			}
 			
-			if(Working_count == 4)
-			{
-				timeCheck(&StartTime, data_rx);
-			}
+			
 			 if(uart_flag2)
 					 
 			{

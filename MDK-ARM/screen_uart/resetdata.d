@@ -28,3 +28,4 @@ screen_uart\resetdata.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash
 screen_uart\resetdata.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
 screen_uart\resetdata.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
 screen_uart\resetdata.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_uart.h
+screen_uart\resetdata.o: ..\Mylibrary\StateCheck.h

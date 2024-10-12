@@ -18,6 +18,7 @@ void received_data(uint8_t data)
             data_rx[uart_len] = data;
             receive_flag = 0;
             uart_len = 0;
+						uart_flag = 1;
         }
         else
         {
